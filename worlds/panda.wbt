@@ -1,0 +1,234 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BakelitePlastic.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Bolt.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/franka_emika/panda/protos/Panda.proto"
+
+WorldInfo {
+  info [
+    "This example showcases Franka Emika's Panda robot in a factory setting."
+  ]
+  title "Panda demo"
+  basicTimeStep 16
+}
+DEF VIEWPOINT Viewpoint {
+  orientation 0.06306124181304658 -0.8591954368548491 -0.5077464732214312 6.018737530834926
+  position -7.595941820489216 -0.3803915962000852 3.2485557428757694
+  ambientOcclusionRadius 1
+}
+TexturedBackground {
+  texture "factory"
+  skybox FALSE
+}
+Floor {
+  translation 0 2.5 0
+  size 6.95 11.5
+  tileSize 2 2
+  appearance BakelitePlastic {
+    color "braun"
+  }
+}
+Table {
+  translation 0 2.64217 -2.62797e-05
+  rotation 0 0 1 1.5708
+  name "table(4)"
+  size 1.2 2.2 0.7
+  feetSize 0.05 0.05
+  trayAppearance Parquetry {
+    type "light strip"
+    colorOverride 0.933333 0.933333 0.92549
+  }
+  legAppearance BrushedAluminium {
+    colorOverride 0.333 0.341 0.325
+  }
+}
+Panda {
+  translation -2.45568e-06 2.2 0.7
+  rotation 0 0 1 1.5708
+  controller "panda_arm_demo"
+}
+Bolt {
+  translation 0.08 2.19 0.69
+  rotation 0.3574058186283875 0.8628565621288802 -0.35740681862788 1.71777
+  name "bolt(12)"
+  enablePhysics FALSE
+}
+Bolt {
+  translation -0.08 2.189 0.69
+  rotation -0.12942794302188446 -0.9831055672070398 0.12942894302144423 -1.58784
+  name "bolt(13)"
+  enablePhysics FALSE
+}
+Bolt {
+  translation 0.04 2.062 0.689
+  rotation 0.1294279597735375 -0.9831056944488314 -0.1294279597735375 -1.58784
+  name "bolt(14)"
+  enablePhysics FALSE
+}
+Bolt {
+  translation -0.04 2.0625 0.689
+  rotation 0.35740494636728165 -0.8628568705184134 -0.3574069463669815 -1.71777
+  name "bolt(15)"
+  enablePhysics FALSE
+}
+DEF RED_BIN PlasticCrate {
+  translation -0.589 2.46 0.7
+  rotation 0 0 1 4.07987e-06
+  name "plastic crate(2)"
+  size 0.4 0.4 0.2
+  color 1 0 0
+}
+DEF BLUE_BIN PlasticCrate {
+  translation 0.589 2.45539 0.7
+  rotation 0 0 1 -1.5707953071795862
+  name "plastic crate(1)"
+  size 0.4 0.4 0.2
+  color 0 0 0.498039
+}
+DirectionalLight {
+  intensity 3.5
+}
+Robot {
+  translation 0 2.65 3.4
+  rotation 0 1 0 1.5708
+  children [
+    Camera {
+      width 512
+      height 512
+    }
+  ]
+  name "camera_rig"
+  controller "camera_controller"
+}
+DEF RED_CUBE_1 Solid {
+  translation 0.689 2.95 0.719961
+  rotation 0.3547925531374543 0.15768557917220444 -0.921551681871035 1.650173229299283e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF RED_CUBE_2 Solid {
+  translation -0.589 2.95 0.719961
+  rotation 0.3547925531374543 0.15768557917220444 -0.921551681871035 1.650173229299283e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(1)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF RED_CUBE_3 Solid {
+  translation 0.489 2.85 0.719961
+  rotation 0.3547925531374543 0.15768557917220444 -0.921551681871035 1.650173229299283e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(2)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF BLUE_CUBE_1 Solid {
+  translation -0.689 2.95 0.719961
+  rotation 0.3547925531374543 0.15768557917220444 -0.921551681871035 1.650173229299283e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(3)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF BLUE_CUBE_2 Solid {
+  translation 0.489 3 0.719961
+  rotation 0.3547925531374543 0.15768557917220444 -0.921551681871035 1.650173229299283e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(4)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF BLUE_CUBE_3 Solid {
+  translation -0.489 2.8 0.719961
+  rotation 0.3547925531374543 0.15768557917220444 -0.921551681871035 1.650173229299283e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(5)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+Solid {
+  translation 0 2.64 0.35
+  name "solid(6)"
+  boundingObject Box {
+    size 2.2 1.2 0.7
+  }
+}
