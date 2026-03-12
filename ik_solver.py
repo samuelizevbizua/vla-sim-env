@@ -1,33 +1,25 @@
-import warnings
-from ikpy import chain
+import numpy as np
+import roboticstoolbox as rtb
+from spatialmath import SE3
 
-warnings.filterwarnings("ignore", category=UserWarning, module='ikpy')
+# Derived from URDF: link7→hand: 0.049 + hand→finger: 0.0584 + finger tip: 0.045
+FINGER_LENGTH = 0.049 + 0.0584 + 0.045  # = 0.1524m
 
 class IK_Solver:
-    def __init__(self, urdf_path: str) -> None:
-        self.chain = chain.Chain.from_urdf_file(urdf_path)
-                
-        # Check if joint_type exists to avoid 'OriginLink' error
-        self.joints_mask = []
-        for link in self.chain.links:
-            # If it's the virtual origin or a fixed/prismatic joint, mask it out (False)
-            if not hasattr(link, 'joint_type') or link.joint_type == 'fixed' or link.joint_type == 'prismatic':
-                self.joints_mask.append(False)
-            else:
-                self.joints_mask.append(True)
+    def __init__(self) -> None:
+        self.robot = rtb.models.Panda()
+        self.home_q = self.robot.qr
 
-        # Optional: Print to verify it caught exactly 7 joints
-        active_count = sum(self.joints_mask)
-        print(f"IK Solver initialized with {active_count} active degrees of freedom.")
+    def get_link_pos(self, target_pos: list[float]) -> list[float]:
+        x, y, z = target_pos
 
-    def get_link_pos(self, target_pos: list[float], initial_pos: list[float]) -> list[float]:
-        padded_initial_pos = [0.0] * len(self.chain.links)
-        padded_initial_pos[1:len(initial_pos) + 1] = initial_pos
+        # Offset Z up by finger length so wrist sits above target
+        # and fingers land exactly at the target position
+        T_target = SE3(x, y, z + FINGER_LENGTH) * SE3.OA([0, 1, 0], [0, 0, -1])
 
-        link_pos = self.chain.inverse_kinematics(
-            target_position=target_pos,
-            initial_position=padded_initial_pos,
-            active_links_mask=self.joints_mask
-        )
+        sol = self.robot.ikine_LM(T_target, q0=self.home_q)
 
-        return list(link_pos[1:len(initial_pos) + 1])
+        if not sol.success:
+            raise RuntimeError(f"IK failed to converge for target {target_pos}")
+
+        return sol.q.tolist()

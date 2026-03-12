@@ -6,7 +6,6 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Bolt.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
 
 WorldInfo {
@@ -17,8 +16,8 @@ WorldInfo {
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.24845471514126896 -0.37704681544667845 0.8922476973831814 5.00566643317653
-  position -1.2359511098596165 5.190107111392225 3.494695659037135
+  orientation -0.2502440613166757 0.0935964325453461 0.9636480776665932 2.4444616836057724
+  position 4.675595449718324 -3.0435304167109036 3.8999219203250526
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -26,18 +25,14 @@ TexturedBackground {
   skybox FALSE
 }
 Floor {
-  translation 0 2.5 0
-  size 6.95 11.5
+  size 3 3
   tileSize 2 2
   appearance BakelitePlastic {
     color "braun"
   }
 }
 Table {
-  translation 0 2.64217 -2.62797e-05
-  rotation 0 0 1 1.5708
-  name "table(4)"
-  size 1.2 2.2 0.7
+  size 1.7 1.7 0.7
   feetSize 0.05 0.05
   trayAppearance Parquetry {
     type "light strip"
@@ -47,20 +42,147 @@ Table {
     colorOverride 0.333 0.341 0.325
   }
 }
+DEF RED_BIN PlasticCrate {
+  translation -0.1 -0.52 0.7
+  rotation 0 0 -0.9999999999999999 1.5707953071795862
+  name "plastic crate(2)"
+  size 0.4 0.4 0.2
+  color 1 0 0
+}
+DEF BLUE_BIN PlasticCrate {
+  translation -0.1 0.52 0.7
+  rotation 0 0 -0.9999999999999999 1.5707953071795862
+  name "plastic crate(1)"
+  size 0.4 0.4 0.2
+  color 0 0 1
+}
+DirectionalLight {
+  intensity 3.5
+}
+DEF RED_CUBE_1 Solid {
+  translation 0.44 0.53 0.7199874430582335
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF RED_CUBE_2 Solid {
+  translation 0.38 0.45 0.7199874430580533
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(1)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF RED_CUBE_3 Solid {
+  translation 0.37 -0.43 0.7199874430582335
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(2)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF BLUE_CUBE_1 Solid {
+  translation 0.48 0.44 0.7199874430582335
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(3)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF BLUE_CUBE_2 Solid {
+  translation 0.47 -0.36 0.7199874430582335
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(4)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
+DEF BLUE_CUBE_3 Solid {
+  translation 0.48 -0.45 0.7199874430582335
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.04 0.04 0.04
+      }
+    }
+  ]
+  name "solid(5)"
+  boundingObject Box {
+    size 0.04 0.04 0.04
+  }
+  physics Physics {
+  }
+}
 Robot {
-  translation -2.45568e-06 2.2 0.7
-  rotation 0 0 1 1.5708
+  translation 0 0 0.7
   children [
     Camera {
-      translation 0.45 0 2.7
+      translation 0 0 2.7
       rotation 0 1 0 1.57
-      fieldOfView 0.6
-      width 1100
-      height 600
+      fieldOfView 0.55
+      width 1024
+      height 1024
     }
     Solid {
-      translation -7.4763909023722874e-06 -7.467679623339527e-08 -0.0005576454289138999
-      rotation -0.0209750158536392 0.9997799664105755 0.00025975759439122407 0.0001703910339828778
       children [
         CadShape {
           url [
@@ -69,7 +191,6 @@ Robot {
         }
         DEF panda_joint1 HingeJoint {
           jointParameters HingeJointParameters {
-            position -0.00018594939591183086
             axis 0 0 1
             anchor 0 0 0.14
             dampingConstant 0.003
@@ -87,8 +208,7 @@ Robot {
             }
           ]
           endPoint DEF panda_link1 Solid {
-            translation 0 0 0.3330000000000002
-            rotation 0 0 -1 0.00018594939524106257
+            translation 0 0 0.3329999999999998
             children [
               CadShape {
                 url [
@@ -97,7 +217,6 @@ Robot {
               }
               DEF panda_joint2 HingeJoint {
                 jointParameters HingeJointParameters {
-                  position 0.7379015792908041
                   axis 0 1 0
                   dampingConstant 0.003
                 }
@@ -114,7 +233,7 @@ Robot {
                   }
                 ]
                 endPoint DEF panda_link2 Solid {
-                  rotation -0.8773932638428392 0.3392500079478301 0.33924989708267705 1.7012245897449922
+                  rotation -1 1.5700927152329388e-16 0 1.5707960000000003
                   children [
                     CadShape {
                       url [
@@ -123,7 +242,6 @@ Robot {
                     }
                     DEF panda_joint3 HingeJoint {
                       jointParameters HingeJointParameters {
-                        position -0.00012688283395029238
                         axis 0 -1 0
                         anchor 0 -0.195 0
                         dampingConstant 0.003
@@ -141,8 +259,8 @@ Robot {
                         }
                       ]
                       endPoint DEF panda_link3 Solid {
-                        translation 0 -0.31600000000000006 0
-                        rotation 0.9999999959751854 6.344143753725425e-05 -6.344141680491962e-05 1.5707960040248135
+                        translation 0 -0.316 0
+                        rotation 1 0 1.962615894041174e-17 1.5707959999999996
                         children [
                           CadShape {
                             url [
@@ -151,7 +269,7 @@ Robot {
                           }
                           DEF panda_joint4 HingeJoint {
                             jointParameters HingeJointParameters {
-                              position -1.9610859446295665
+                              position -1.7708
                               axis 0 -1 0
                               anchor 0.0825 0 0
                               dampingConstant 0.003
@@ -170,7 +288,7 @@ Robot {
                             ]
                             endPoint DEF panda_link4 Solid {
                               translation 0.0825 0 0
-                              rotation 0.4930632367234245 0.6151782879642737 -0.6151782819713041 2.2254260339986525
+                              rotation 0.5661098628752399 0.5828891661867002 -0.5828892202619212 2.1113368158463413
                               children [
                                 CadShape {
                                   url [
@@ -179,7 +297,7 @@ Robot {
                                 }
                                 DEF panda_joint5 HingeJoint {
                                   jointParameters HingeJointParameters {
-                                    position -1.600035125080042
+                                    position -1.6
                                     axis 0 1 0
                                     anchor -0.0825 0.125 0
                                     dampingConstant 0.003
@@ -197,8 +315,8 @@ Robot {
                                     }
                                   ]
                                   endPoint DEF panda_link5 Solid {
-                                    translation -0.0825 0.3839999999999999 0
-                                    rotation -0.9999999996915571 -1.7562545756674826e-05 -1.7562540017514923e-05 1.5707960003084425
+                                    translation -0.0825 0.384 0
+                                    rotation -1 -2.3551390728494083e-16 -7.850463576164694e-17 1.5707960000000003
                                     children [
                                       CadShape {
                                         url [
@@ -207,7 +325,7 @@ Robot {
                                       }
                                       DEF panda_joint6 HingeJoint {
                                         jointParameters HingeJointParameters {
-                                          position 2.5291804129262845
+                                          position 1.6
                                           axis 0 -1 0
                                           dampingConstant 0.003
                                         }
@@ -224,7 +342,7 @@ Robot {
                                           }
                                         ]
                                         endPoint DEF panda_link6 Solid {
-                                          rotation 0.21816634890867562 -0.690073820487506 0.6900735949749384 2.7119912494612963
+                                          rotation 0.5661102295741459 -0.5828891103953293 0.582888919910174 2.111336936951227
                                           children [
                                             CadShape {
                                               url [
@@ -233,7 +351,7 @@ Robot {
                                             }
                                             DEF panda_joint7 HingeJoint {
                                               jointParameters HingeJointParameters {
-                                                position 0.790000072634565
+                                                position 0.79
                                                 axis 0 -1 0
                                                 anchor 0.088 -0.058 0
                                                 dampingConstant 0.003
@@ -251,8 +369,8 @@ Robot {
                                                 }
                                               ]
                                               endPoint DEF panda_link7 Solid {
-                                                translation 0.088 -5.551115123125783e-17 0
-                                                rotation 0.86141906959997 -0.3591359567271245 0.3591358393633456 1.7194199700011095
+                                                translation 0.088 -6.938893903907228e-17 0
+                                                rotation 0.8614190923211574 -0.359135929477735 0.3591358121139642 1.7194199439154276
                                                 children [
                                                   CadShape {
                                                     url [
@@ -274,7 +392,6 @@ Robot {
                                                               }
                                                               DEF panda_finger_joint1 SliderJoint {
                                                                 jointParameters JointParameters {
-                                                                  position 0.011999999773774899
                                                                   axis 0 1 0
                                                                   dampingConstant 0.03
                                                                 }
@@ -290,7 +407,7 @@ Robot {
                                                                   }
                                                                 ]
                                                                 endPoint DEF panda_leftfinger Solid {
-                                                                  translation 0 0.011999999773774899 0.0584
+                                                                  translation 0 0 0.0584
                                                                   children [
                                                                     CadShape {
                                                                       url [
@@ -343,7 +460,6 @@ Robot {
                                                               }
                                                               DEF panda_finger_joint2 SliderJoint {
                                                                 jointParameters JointParameters {
-                                                                  position 0.012000000254239921
                                                                   axis 0 -1 0
                                                                   dampingConstant 0.03
                                                                 }
@@ -359,7 +475,7 @@ Robot {
                                                                   }
                                                                 ]
                                                                 endPoint DEF panda_rightfinger Solid {
-                                                                  translation 0 -0.012000000254239921 0.0584
+                                                                  translation 0 0 0.0584
                                                                   children [
                                                                     Pose {
                                                                       rotation 0 0 1 3.141593
@@ -739,173 +855,6 @@ Robot {
     }
   ]
   name "panda"
-  controller "vla_supervisor_controller"
+  controller "supervisor_controller"
   supervisor TRUE
-}
-Bolt {
-  translation 0.08 2.19 0.69
-  rotation 0.3574058186283875 0.8628565621288802 -0.35740681862788 1.71777
-  name "bolt(12)"
-  enablePhysics FALSE
-}
-Bolt {
-  translation -0.08 2.189 0.69
-  rotation -0.12942794302188446 -0.9831055672070398 0.12942894302144423 -1.58784
-  name "bolt(13)"
-  enablePhysics FALSE
-}
-Bolt {
-  translation 0.04 2.062 0.689
-  rotation 0.1294279597735375 -0.9831056944488314 -0.1294279597735375 -1.58784
-  name "bolt(14)"
-  enablePhysics FALSE
-}
-Bolt {
-  translation -0.04 2.0625 0.689
-  rotation 0.35740494636728165 -0.8628568705184134 -0.3574069463669815 -1.71777
-  name "bolt(15)"
-  enablePhysics FALSE
-}
-DEF RED_BIN PlasticCrate {
-  translation -0.589 2.46 0.7
-  rotation 0 0 1 4.07987e-06
-  name "plastic crate(2)"
-  size 0.3 0.3 0.2
-  color 1 0 0
-}
-DEF BLUE_BIN PlasticCrate {
-  translation 0.589 2.45539 0.7
-  rotation 0 0 1 -1.5707953071795862
-  name "plastic crate(1)"
-  size 0.3 0.3 0.2
-  color 0 0 0.498039
-}
-DirectionalLight {
-  intensity 3.5
-}
-DEF RED_CUBE_1 Solid {
-  translation 0.689 2.95 0.7259874431999997
-  rotation -0.7379751253848035 -0.6504187545764379 -0.17985593681755174 5.2008198631320955e-16
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0 0
-      }
-      geometry Box {
-        size 0.04 0.04 0.04
-      }
-    }
-  ]
-  boundingObject Box {
-    size 0.04 0.04 0.04
-  }
-  physics Physics {
-  }
-}
-DEF RED_CUBE_2 Solid {
-  translation -0.589 2.95 0.7259874431999997
-  rotation -0.6530825628320995 -0.7256472920356627 -0.21660834168139995 4.482351898994818e-16
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0 0
-      }
-      geometry Box {
-        size 0.04 0.04 0.04
-      }
-    }
-  ]
-  name "solid(1)"
-  boundingObject Box {
-    size 0.04 0.04 0.04
-  }
-  physics Physics {
-  }
-}
-DEF RED_CUBE_3 Solid {
-  translation 0.489 2.85 0.7259874431999997
-  rotation 0.08361808701410796 -0.9675807211632503 -0.23831819812449362 5.445770510955146e-16
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0 0
-      }
-      geometry Box {
-        size 0.04 0.04 0.04
-      }
-    }
-  ]
-  name "solid(2)"
-  boundingObject Box {
-    size 0.04 0.04 0.04
-  }
-  physics Physics {
-  }
-}
-DEF BLUE_CUBE_1 Solid {
-  translation -0.689 2.95 0.7259874431999997
-  rotation -0.5285064943737829 -0.8238483588767772 -0.2048286283232285 4.1849484451295436e-16
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0 0 1
-      }
-      geometry Box {
-        size 0.04 0.04 0.04
-      }
-    }
-  ]
-  name "solid(3)"
-  boundingObject Box {
-    size 0.04 0.04 0.04
-  }
-  physics Physics {
-  }
-}
-DEF BLUE_CUBE_2 Solid {
-  translation 0.489 3 0.7259874431999997
-  rotation -0.6274179385824726 -0.7110736637267988 -0.31736568040521973 3.110468780798786e-16
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0 0 1
-      }
-      geometry Box {
-        size 0.04 0.04 0.04
-      }
-    }
-  ]
-  name "solid(4)"
-  boundingObject Box {
-    size 0.04 0.04 0.04
-  }
-  physics Physics {
-  }
-}
-DEF BLUE_CUBE_3 Solid {
-  translation -0.489 2.8 0.7259874431999997
-  rotation -0.3120865571383739 -0.901583387288634 -0.29958200316218847 3.7519666243271526e-16
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0 0 1
-      }
-      geometry Box {
-        size 0.04 0.04 0.04
-      }
-    }
-  ]
-  name "solid(5)"
-  boundingObject Box {
-    size 0.04 0.04 0.04
-  }
-  physics Physics {
-  }
-}
-Solid {
-  translation 0 2.64 0.35
-  name "solid(6)"
-  boundingObject Box {
-    size 2.2 1.2 0.712
-  }
 }

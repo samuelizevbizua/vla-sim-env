@@ -1,5 +1,8 @@
-# Virtual Environment
 venv/
 env/
 ENV/
-.venv
+.venv/
+
+__pycache__/
+.git/
+worlds/.panda.wbproj
