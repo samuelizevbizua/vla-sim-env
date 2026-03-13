@@ -1,3 +1,2 @@
-numpy<2.0
-ikpy
-roboticstoolbox-python
+numpy
+ur_analytic_ik

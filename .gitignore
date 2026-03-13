@@ -5,4 +5,5 @@ ENV/
 
 __pycache__/
 .git/
-worlds/.panda.wbproj
+worlds/*.wbproj
+tmp/
