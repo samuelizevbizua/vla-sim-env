@@ -32,12 +32,26 @@ class IK_Solver:
         target_pose = np.eye(4)
         target_pose[:3, 3] = target_pos
 
-        # Setup Top-Down Orientation
-        target_pose[:3, :3] = np.array([
+        # Base Top-Down Orientation
+        base_orientation = np.array([
             [-1.0,  0.0,  0.0],
             [ 0.0,  1.0,  0.0],
             [ 0.0,  0.0, -1.0]
         ])
+
+        # --- THE WRIST TWIST ---
+        # Twist the wrist by 45 degrees (np.pi / 4). 
+        # You can change this to np.pi / 6 for a 30-degree twist!
+        twist_angle = np.pi / 4 
+        
+        twist_matrix = np.array([
+            [np.cos(twist_angle), -np.sin(twist_angle), 0],
+            [np.sin(twist_angle),  np.cos(twist_angle), 0],
+            [0,                    0,                   1]
+        ])
+        
+        # Apply the twist to the base orientation
+        target_pose[:3, :3] = base_orientation.dot(twist_matrix)
 
         # Solve using the closest joint configuration AND the gripper length offset
         solution = ur10e.inverse_kinematics_closest_with_tcp(
