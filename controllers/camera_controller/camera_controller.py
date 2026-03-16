@@ -2,7 +2,8 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Robot
-from utils import CAMERA_FRAME_PATH
+
+CAMERA_FRAME_PATH = os.path.join(os.path.dirname(__file__), '../../tmp/camera_frame.bin')
 
 robot = Robot()
 timestep = int(robot.getBasicTimeStep())

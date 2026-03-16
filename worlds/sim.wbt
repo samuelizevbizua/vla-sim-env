@@ -97,12 +97,12 @@ DEF RED_CUBE_1 Solid {
         baseColor 1 0 0
       }
       geometry Box {
-        size 0.04 0.04 0.04
+        size 0.06 0.06 0.06
       }
     }
   ]
   boundingObject Box {
-    size 0.04 0.04 0.04
+    size 0.06 0.06 0.06
   }
   physics Physics {
   }
@@ -115,13 +115,13 @@ DEF RED_CUBE_2 Solid {
         baseColor 1 0 0
       }
       geometry Box {
-        size 0.04 0.04 0.04
+        size 0.06 0.06 0.06
       }
     }
   ]
   name "solid(1)"
   boundingObject Box {
-    size 0.04 0.04 0.04
+    size 0.06 0.06 0.06
   }
   physics Physics {
   }
@@ -134,13 +134,13 @@ DEF RED_CUBE_3 Solid {
         baseColor 1 0 0
       }
       geometry Box {
-        size 0.04 0.04 0.04
+        size 0.06 0.06 0.06
       }
     }
   ]
   name "solid(2)"
   boundingObject Box {
-    size 0.04 0.04 0.04
+    size 0.06 0.06 0.06
   }
   physics Physics {
   }
@@ -153,13 +153,13 @@ DEF BLUE_CUBE_1 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.04 0.04 0.04
+        size 0.06 0.06 0.06
       }
     }
   ]
   name "solid(3)"
   boundingObject Box {
-    size 0.04 0.04 0.04
+    size 0.06 0.06 0.06
   }
   physics Physics {
   }
@@ -172,13 +172,13 @@ DEF BLUE_CUBE_2 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.04 0.04 0.04
+        size 0.06 0.06 0.06
       }
     }
   ]
   name "solid(4)"
   boundingObject Box {
-    size 0.04 0.04 0.04
+    size 0.06 0.06 0.06
   }
   physics Physics {
   }
@@ -191,13 +191,13 @@ DEF BLUE_CUBE_3 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.04 0.04 0.04
+        size 0.06 0.06 0.06
       }
     }
   ]
   name "solid(5)"
   boundingObject Box {
-    size 0.04 0.04 0.04
+    size 0.06 0.06 0.06
   }
   physics Physics {
   }
