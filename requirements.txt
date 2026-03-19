@@ -1,2 +1,7 @@
+python-dotenv
 numpy
 ur_analytic_ik
+huggingface_hub 
+langchain
+langchain-huggingface
+pydantic
