@@ -119,7 +119,7 @@ class UR10e_Robot:
     def _init_matrices(self):
         # Webots vs UR Coordinate Alignment
         # -90 degrees aligns the Webots Y-forward world to the UR X-forward solver!
-        offset_angle = -np.pi / 2  
+        offset_angle = np.pi
         
         self.rotation_matrix = np.array([
             [np.cos(offset_angle), -np.sin(offset_angle), 0],

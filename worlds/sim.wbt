@@ -204,7 +204,7 @@ DEF BLUE_CUBE_3 Solid {
 }
 UR10e {
   translation 0 0 0.7
-  controller "supervisor_controller"
+  controller "ik_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [

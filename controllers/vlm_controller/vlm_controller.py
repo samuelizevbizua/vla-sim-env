@@ -5,23 +5,26 @@ import base64
 from controller import Supervisor
 from UR import UR10e_Robot
 from config import CAM_FRAME_PATH, HF_API_TOKEN, HF_MODEL_ID, WORLD_TABLE_HEIGHT, CAM_X_OFFSET, CAM_Y_OFFSET
+from typing import List
 
 # --- LANGCHAIN IMPORTS ---
+from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
-from pydantic import BaseModel, Field
 from langchain_core.output_parsers import PydanticOutputParser
 
 # --- 1. THE PYDANTIC BLUEPRINT ---
 class TargetCoordinates(BaseModel):
-    cube_pixel_x: float = Field(description="The X pixel coordinate of the small red cube.")
-    cube_pixel_y: float = Field(description="The Y pixel coordinate of the small red cube.")
-    bin_pixel_x: float = Field(description="The X pixel coordinate of the large, hollow blue bin.")
-    bin_pixel_y: float = Field(description="The Y pixel coordinate of the large, hollow blue bin.")
+    cube_pixels: List[float] = Field(description="The [X, Y] pixel coordinates of the small red cube.")
+    bin_pixels: List[float] = Field(description="The [X, Y] pixel coordinates of the large, hollow blue bin.")
 
 # --- 2. THE ROBOT MUSCLE ---
 def execute_pick_and_place(robot, coords: TargetCoordinates):
-    print(f"\n[Muscle] Received Pixels - Cube: ({coords.cube_pixel_x}, {coords.cube_pixel_y}), Bin: ({coords.bin_pixel_x}, {coords.bin_pixel_y})")
+    # Unpack the lists from Pydantic!
+    cube_x, cube_y = coords.cube_pixels[0], coords.cube_pixels[1]
+    bin_x, bin_y = coords.bin_pixels[0], coords.bin_pixels[1]
+    
+    print(f"\n[Muscle] Received Pixels - Cube: ({cube_x}, {cube_y}), Bin: ({bin_x}, {bin_y})")
     
     center_x, center_y = 1500 / 2.0, 1000 / 2.0 
     
@@ -29,11 +32,11 @@ def execute_pick_and_place(robot, coords: TargetCoordinates):
     SCALE_X = 0.00098 
     SCALE_Y = -0.00097 
     
-    pick_x = round(((coords.cube_pixel_x - center_x) * SCALE_X) + CAM_X_OFFSET, 3)
-    pick_y = round(((coords.cube_pixel_y - center_y) * SCALE_Y) + CAM_Y_OFFSET, 3)
+    pick_x = round(((cube_x - center_x) * SCALE_X) + CAM_X_OFFSET, 3)
+    pick_y = round(((cube_y - center_y) * SCALE_Y) + CAM_Y_OFFSET, 3)
     
-    drop_x = round(((coords.bin_pixel_x - center_x) * SCALE_X) + CAM_X_OFFSET, 3)
-    drop_y = round(((coords.bin_pixel_y - center_y) * SCALE_Y) + CAM_Y_OFFSET, 3)
+    drop_x = round(((bin_x - center_x) * SCALE_X) + CAM_X_OFFSET, 3)
+    drop_y = round(((bin_y - center_y) * SCALE_Y) + CAM_Y_OFFSET, 3)
     
     print(f"[Muscle] World Coords - Pick: ({pick_x}, {pick_y}), Drop: ({drop_x}, {drop_y})")
 
