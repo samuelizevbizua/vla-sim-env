@@ -3,6 +3,4 @@ numpy
 opencv-python
 ur_analytic_ik 
 langchain
-langgraph
 langchain-google-genai
-pydantic
