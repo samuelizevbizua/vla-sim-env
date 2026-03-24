@@ -1,7 +1,8 @@
 python-dotenv
 numpy
-ur_analytic_ik
-huggingface_hub 
+opencv-python
+ur_analytic_ik 
 langchain
-langchain-huggingface
+langgraph
+langchain-google-genai
 pydantic

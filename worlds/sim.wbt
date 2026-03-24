@@ -59,19 +59,19 @@ Table {
     colorOverride 0.333 0.341 0.325
   }
 }
-DEF BLUE_BIN PlasticCrate {
+DEF BIN_1 PlasticCrate {
   translation -0.53 0.58 0.7
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(1)"
   size 0.3 0.3 0.1
-  color 0 0 1
+  color 0 1 0
 }
-DEF RED_BIN PlasticCrate {
+DEF BIN_2 PlasticCrate {
   translation -0.52 1.04 0.7
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
   size 0.3 0.3 0.1
-  color 1 0 0
+  color 1 1 0
 }
 DirectionalLight {
   intensity 3.5
@@ -79,11 +79,14 @@ DirectionalLight {
 Robot {
   translation 0.01 0.84 2.7
   children [
+    Emitter {
+      channel 1
+    }
     Camera {
       rotation 0.577656895078166 -0.5771968951617173 -0.5771968951617173 -2.093935307179586
-      fieldOfView 0.72
-      width 1500
-      height 1000
+      fieldOfView 0.67
+      width 640
+      height 450
     }
   ]
   name "camera_rig"
@@ -204,10 +207,14 @@ DEF BLUE_CUBE_3 Solid {
 }
 UR10e {
   translation 0 0 0.7
-  controller "ik_controller"
+  controller "vlm_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
+    Receiver {
+      channel 1
+      bufferSize 2000000
+    }
     Robotiq3fGripper {
     }
   ]

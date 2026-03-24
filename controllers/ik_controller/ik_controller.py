@@ -9,7 +9,7 @@ robot = UR10e_Robot(supervisor)
 
 # "Cheat" by asking the physics engine exactly where the objects are
 target = supervisor.getFromDef("RED_CUBE_1")
-dest = supervisor.getFromDef("BLUE_BIN")
+dest = supervisor.getFromDef("BIN_1")
 
 target_pos = target.getPosition()
 dest_pos = dest.getPosition()

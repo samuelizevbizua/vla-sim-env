@@ -1,8 +1,6 @@
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
 from controller import Robot
-from config import CAM_FRAME_PATH
+import cv2
+import numpy as np
 
 robot = Robot()
 timestep = int(robot.getBasicTimeStep())
@@ -10,14 +8,24 @@ timestep = int(robot.getBasicTimeStep())
 camera = robot.getDevice('camera')
 camera.enable(timestep)
 
-print(f"Camera controller started. Saving frames to: {CAM_FRAME_PATH}")
+# initialize emitter
+emitter = robot.getDevice('emitter')
 
-step_count = 0
+print(f"[Camera] Emitter initialized with channel: {emitter.getChannel()}")
+
 while robot.step(timestep) != -1:
-    # Give the camera 10 steps to "warm up" visually
-    # Then only save the image once every 30 steps (approx 1 second)
-    # This prevents the file from being constantly locked/wiped!
-    if step_count > 10 and step_count % 30 == 0:
-        camera.saveImage(CAM_FRAME_PATH, 100)
+    # Get raw bytes (BGRA format)
+    raw_image = camera.getImage()
+    
+    if raw_image:
+        # Convert bytes to a NumPy array for OpenCV
+        img = np.frombuffer(raw_image, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
         
-    step_count += 1
+        # Compress to JPEG (Quality 80 is a good balance for AI)
+        success, encoded_img = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        
+        if success:
+            # Send the compressed bytes
+            emitter.send(encoded_img.tobytes())
+        else:
+            print("[Camera] Failed to encode image")
