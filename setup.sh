@@ -6,6 +6,9 @@ if [ -d ".venv" ]; then
   rm -rf .venv
 fi
 
+# Remove existing pycache directories
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
 # Create a fresh virtual environment with Python 3.11
 python3.11 -m venv .venv
 

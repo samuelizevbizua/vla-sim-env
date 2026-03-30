@@ -1,14 +1,12 @@
-import os, sys, base64
+import os, sys
 os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-import cv2
 import numpy as np
 from controller import Supervisor
 from UR import UR10e_Robot
-from config import WORLD_TABLE_HEIGHT, CAM_X_OFFSET, CAM_Y_OFFSET, CAM_HEIGHT, CAM_WIDTH, HF_MODEL
+from config import OVERHEAD_CAM_DEF, OVERHEAD_RECEIVER, PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, HF_MODEL, GET_RECEIVER_BASE64_IMAGE
 
-# --- THE ACTUAL MODERN LANGCHAIN IMPORTS ---
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.tools import tool
@@ -18,20 +16,26 @@ supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = UR10e_Robot(supervisor)
 
-receiver = supervisor.getDevice('receiver')
+receiver = supervisor.getDevice(OVERHEAD_RECEIVER)
 receiver.enable(timestep)
 
-def get_latest_image():
-    last_packet = None
-    while receiver.getQueueLength() > 0:
-        last_packet = receiver.getBytes()
-        receiver.nextPacket()
-    
-    if last_packet:
-        nparr = np.frombuffer(last_packet, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        return frame
-    return None
+perspective_receiver = supervisor.getDevice(PERSPECTIVE_RECEIVER)
+perspective_receiver.enable(timestep)
+
+cam_node = supervisor.getFromDef(OVERHEAD_CAM_DEF)
+CAM_WIDTH = cam_node.getField("width").getSFInt32()
+CAM_HEIGHT = cam_node.getField("height").getSFInt32()
+
+cam_rig = cam_node.getParentNode()
+CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
+
+TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
+
+_height = CAM_Z - TABLE_HEIGHT
+_ground_w = 2.0 * _height * np.tan(0.67 / 2.0)
+_ground_h = _ground_w * (CAM_HEIGHT / CAM_WIDTH)
+MPP_X =  _ground_w / CAM_WIDTH
+MPP_Y = -_ground_h / CAM_HEIGHT
 
 task_active = True
 current_phase = 0
@@ -54,34 +58,32 @@ def execute_robot_phase(cube_x_norm: float, cube_y_norm: float, bin_x_norm: floa
         task_active = False
         return "Task complete. Shutting down."
 
-    # 1. Map normalized 0.0-1.0 to ACTUAL camera resolution
-    cube_x, cube_y = cube_x_norm * CAM_WIDTH, cube_y_norm * CAM_HEIGHT
-    bin_x, bin_y = bin_x_norm * CAM_WIDTH, bin_y_norm * CAM_HEIGHT
+    px_cube = cube_x_norm * CAM_WIDTH
+    py_cube = cube_y_norm * CAM_HEIGHT
+    px_bin  = bin_x_norm  * CAM_WIDTH
+    py_bin  = bin_y_norm  * CAM_HEIGHT
 
-    print(f"\n[Muscle] True Pixels Calculated -> Cube: ({cube_x}, {cube_y}), Bin: ({bin_x}, {bin_y})")
+    cx, cy = CAM_WIDTH / 2.0, CAM_HEIGHT / 2.0
 
-    center_x, center_y = CAM_WIDTH / 2.0, CAM_HEIGHT / 2.0 
+    pick_x = round(CAM_X + (px_cube - cx) * MPP_X, 3)
+    pick_y = round(CAM_Y + (py_cube - cy) * MPP_Y, 3)
+    drop_x = round(CAM_X + (px_bin  - cx) * MPP_X, 3)
+    drop_y = round(CAM_Y + (py_bin  - cy) * MPP_Y, 3)
 
-    # 2. Updated Scale math for 640x450 resolution
-    SCALE_X, SCALE_Y = 0.00229, -0.00215 
-    
-    pick_x = round(((cube_x - center_x) * SCALE_X) + CAM_X_OFFSET, 3)
-    pick_y = round(((cube_y - center_y) * SCALE_Y) + CAM_Y_OFFSET, 3)
-    drop_x = round(((bin_x - center_x) * SCALE_X) + CAM_X_OFFSET, 3)
-    drop_y = round(((bin_y - center_y) * SCALE_Y) + CAM_Y_OFFSET, 3)
+    print(f"\n[Muscle] Cube world: ({pick_x}, {pick_y}) | Bin world: ({drop_x}, {drop_y})")
 
     if phase == 0:
         print(" -> [Phase 0] Blind Pick Sequence Initiated...")
         robot.operate_gripper(close=False) 
-        robot.move_to_world_target([pick_x, pick_y, WORLD_TABLE_HEIGHT + 0.15]) 
-        robot.move_to_world_target([pick_x, pick_y, WORLD_TABLE_HEIGHT + 0.02]) 
+        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + 0.15]) 
+        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + 0.02]) 
         robot.operate_gripper(close=True)                                       
-        robot.move_to_world_target([pick_x, pick_y, WORLD_TABLE_HEIGHT + 0.15]) 
+        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + 0.15]) 
         return "Pick sequence complete. Ready for phase 1."
         
     elif phase == 1:
         print(" -> [Phase 1] Place Sequence Initiated...")
-        robot.move_to_world_target([drop_x, drop_y, WORLD_TABLE_HEIGHT + 0.20])
+        robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + 0.20])
         robot.operate_gripper(close=False)
         return "Drop complete. Ready for the next cube."
         
@@ -97,55 +99,50 @@ llm = ChatGoogleGenerativeAI(
     max_retries=3,
 )
 
-# 1. BIND THE TOOL DIRECTLY TO THE LLM
 llm_with_tools = llm.bind_tools([execute_robot_phase])
 
 system_instruction = (
     "You are an expert robotic vision agent. "
-    "When finding objects, you MUST return their center coordinates as a normalized float between 0.0 and 1.0 (e.g., the exact center is [0.5, 0.5]). "
+    "You will receive TWO images: the first is a top-down overhead view used for precise coordinate mapping, "
+    "the second is a perspective view for depth context. "
+    "Return object coordinates from the FIRST (overhead) image as normalized floats between 0.0 and 1.0. "
     "Use your tools to move the robot arm."
 )
 
 print("Vision-action loop starting...\n")
 
 while task_active and supervisor.step(timestep) != -1:
-    # Get the real-time frame from the Receiver
-    frame = get_latest_image()
+    base64_img = GET_RECEIVER_BASE64_IMAGE(receiver)
+    perspective_img = GET_RECEIVER_BASE64_IMAGE(perspective_receiver)
     
-    if frame is not None:
-        # Preview for debugging
-        cv2.imshow("AI Feed", frame)
-        cv2.waitKey(1)
-
-        # 3. Direct memory encoding to Base64 (No disk I/O)
-        _, buffer = cv2.imencode('.jpg', frame)
-        base64_img = base64.b64encode(buffer).decode('utf-8')
-
-        # 4. Construct multimodal prompt
+    if base64_img is not None:
         prompt_text = (
-            "If you see red cubes, identify ONE red cube "
+            "If you see blue cubes, identify ONE blue cube "
             "and call execute_robot_phase with its normalized coordinates (0.0-1.0) "
             "and the GREEN bin's coordinates. "
-            "If NO red cubes are visible anywhere, call phase 99. Do not ask for clarification."
+            "If NO blue cubes are visible anywhere, call phase 99. Do not ask for clarification."
         )
+
+        content = [
+            {"type": "text", "text": prompt_text},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}},
+        ]
+
+        if perspective_img is not None:
+            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{perspective_img}"}})
 
         try:
             print("\n[Vision] Snapping picture and asking Gemini...")
             
             response = llm_with_tools.invoke([
                 SystemMessage(content=system_instruction),
-                HumanMessage(content=[
-                    {"type": "text", "text": prompt_text},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
-                ])
+                HumanMessage(content=content)
             ])
             
             if response.tool_calls:
                 for tool_call in response.tool_calls:
                     args = tool_call["args"]
                     print(f" -> [Brain] decided to call tool with: {args}")
-                    
-                    # This now takes 8-10 physical seconds, naturally acting as our API cooldown!
                     execute_robot_phase.invoke(args)
             else:
                 print(f" -> [Gemini's Voice]: {response.content}")
@@ -157,28 +154,18 @@ while task_active and supervisor.step(timestep) != -1:
             error_msg = str(e)
             print(f"[Error] Agent failed: {error_msg}")
             
-            # --- THE 429 KILL SWITCH ---
             if "429" in error_msg or "ResourceExhausted" in error_msg:
                 print("\n[CRITICAL ERROR] 429 Rate Limit Hit!")
                 print("[System] Pausing Webots simulation to protect API quota...")
-                
-                # 1. Flag the loop to stop
                 task_active = False 
-                
-                # 2. Physically pause the Webots physics engine!
                 supervisor.simulationSetMode(supervisor.SIMULATION_MODE_PAUSE)
-                
-                # 3. Break the while loop immediately
                 break 
                 
-            # If it's a normal error (like a transient network glitch), just do the 2s penalty
             for _ in range(int(2000 / timestep)):
                 if supervisor.step(timestep) == -1: break
     else:
-        # Spin the simulation forward so the receiver has time to grab the first frame
         supervisor.step(timestep)
 
-# Terminal Idle State
 print("\n[System] Entering Terminal Idle State.")
 while supervisor.step(timestep) != -1:
     pass

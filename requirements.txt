@@ -1,6 +1,8 @@
+requests
 python-dotenv
 numpy
 opencv-python
 ur_analytic_ik 
 langchain
 langchain-google-genai
+pillow
