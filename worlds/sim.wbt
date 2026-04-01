@@ -18,8 +18,8 @@ WorldInfo {
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation 0.07061572670629698 -0.10252722315840856 -0.9922205337792438 5.088518037283632
-  position -2.6442061056560253 -4.770156401470892 2.0907725604099974
+  orientation -0.18478552705361181 -0.19139743612014026 0.9639612701961401 4.703737777473969
+  position 1.0658368503055775 10.41734743370916 5.2959422864154755
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -123,12 +123,12 @@ DEF RED_CUBE_1 Solid {
         baseColor 1 0 0
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.07 0.07 0.07
       }
     }
   ]
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.07 0.07 0.07
   }
   physics Physics {
   }
@@ -142,13 +142,13 @@ DEF RED_CUBE_2 Solid {
         baseColor 1 0 0
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.07 0.07 0.07
       }
     }
   ]
   name "solid(1)"
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.07 0.07 0.07
   }
   physics Physics {
   }
@@ -162,13 +162,13 @@ DEF RED_CUBE_3 Solid {
         baseColor 1 0 0
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.07 0.07 0.07
       }
     }
   ]
   name "solid(2)"
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.07 0.07 0.07
   }
   physics Physics {
   }
@@ -182,13 +182,13 @@ DEF BLUE_CUBE_1 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.07 0.07 0.07
       }
     }
   ]
   name "solid(3)"
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.07 0.07 0.07
   }
   physics Physics {
   }
@@ -202,13 +202,13 @@ DEF BLUE_CUBE_2 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.07 0.07 0.07
       }
     }
   ]
   name "solid(4)"
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.07 0.07 0.07
   }
   physics Physics {
   }
@@ -222,51 +222,20 @@ DEF BLUE_CUBE_3 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.07 0.07 0.07
       }
     }
   ]
   name "solid(5)"
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.07 0.07 0.07
   }
   physics Physics {
   }
 }
 UR10e {
-  hidden position_0_0 0.10072632724274941
-  hidden rotation_1 0 0 1 0.06294791361453524
-  hidden position_1_0 -0.1922907387880064
-  hidden rotation_2 0 1 0 1.457689985481577
-  hidden position_2_0 0.3517723462857003
-  hidden rotation_3 0 1 0 0.20104061744790813
-  hidden position_3_0 0.6856342039560086
-  hidden rotation_4 0 1 0 1.9554870886935753
-  hidden position_4_0 0.7017292443918912
-  hidden rotation_5 0 0 1 0.40103000376110465
-  hidden position_5_0 -0.7016637068926016
-  hidden rotation_6 0 -0.9999999999999999 0 0.4009905992735666
-  hidden position_9_0 4.176555661312837e-07
-  hidden position_9_1 4.324578317022509e-07
-  hidden position_9_2 0.049500015743127936
-  hidden rotation_10 0.7068252250597187 0.707388225240868 3.139039999316072e-06 3.14159827829947
-  hidden position_10_0 0.04949979786695371
-  hidden rotation_11 0 0 -1 7.884953353001448e-08
-  hidden position_11_0 -2.5907613922342946e-08
-  hidden rotation_12 0 0 -1 0.5200000152248613
-  hidden position_12_0 -0.052300000011912755
-  hidden rotation_14 0.7068252250596719 0.7073882252408913 3.1442295836327206e-06 3.1415982886869016
-  hidden position_14_0 0.04949978782237224
-  hidden rotation_15 0 0 -0.9999999999999999 1.1542389828584842e-07
-  hidden position_15_0 -2.771584116830693e-08
-  hidden rotation_16 0 0 -1 0.5200000164637738
-  hidden position_16_0 -0.052300000011912116
-  hidden rotation_18 0 0 1 1.6858739404357617e-07
-  hidden position_18_0 -9.970159291549889e-10
-  hidden rotation_19 0 0 -1 0.5199999762671452
-  hidden position_19_0 -0.05230000063878629
   translation 0 0 0.7
-  controller "vlm_controller"
+  controller "ik_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
