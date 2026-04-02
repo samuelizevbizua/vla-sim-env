@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
+# Change to the project root (one level above the setup folder)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+# Copy .env from template if needed
+if [ -f ".env.template" ] && [ ! -f ".env" ]; then
+  cp .env.template .env
+fi
+
 # Remove existing virtual environment for a clean setup
 if [ -d ".venv" ]; then
   rm -rf .venv

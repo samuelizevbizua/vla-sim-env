@@ -1,7 +1,15 @@
+Set-Location (Join-Path $PSScriptRoot "..")
+
 # Stop the script immediately if any command fails
 $ErrorActionPreference = "Stop"
 
 Write-Host "=== Starting Setup ===" -ForegroundColor Cyan
+
+# 0. Copy .env from template if needed
+if (Test-Path -Path ".env.template" -PathType Leaf -and -not (Test-Path -Path ".env" -PathType Leaf)) {
+    Write-Host "Creating .env from .env.template..." -ForegroundColor Cyan
+    Copy-Item -Path ".env.template" -Destination ".env"
+}
 
 # 1. Remove existing virtual environment for a clean setup
 if (Test-Path -Path ".venv") {
