@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 Write-Host "=== Starting Setup ===" -ForegroundColor Cyan
 
 # 0. Copy .env from template if needed
-if (Test-Path -Path ".env.template" -PathType Leaf -and -not (Test-Path -Path ".env" -PathType Leaf)) {
+if ((Test-Path -Path ".env.template" -PathType Leaf) -and -not (Test-Path -Path ".env" -PathType Leaf)) {
     Write-Host "Creating .env from .env.template..." -ForegroundColor Cyan
     Copy-Item -Path ".env.template" -Destination ".env"
 }
