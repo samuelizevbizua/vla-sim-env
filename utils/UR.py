@@ -1,5 +1,6 @@
 import numpy as np
 from ur_analytic_ik import ur10e
+from config import GRIPPER_TARGET_ANGLE_OPEN, GRIPPER_TARGET_ANGLE_CLOSED
 
 class IK_Solver:
     def __init__(self, gripper_length: float = 0.16) -> None:
@@ -84,6 +85,7 @@ class UR10e_Robot:
         for name in motor_names:
             motor = self.supervisor.getDevice(name)
             if motor:
+                motor.setVelocity(1.0) 
                 self.motors.append(motor)
                 sensor = motor.getPositionSensor()
                 sensor.enable(self.timestep)
@@ -147,7 +149,7 @@ class UR10e_Robot:
                 print(f"      -> [Timeout] Forcing next step.")
                 break
 
-    def move_to_world_target(self, target_pos_world):
+    def move_to_world_target(self, target_pos_world, wait=True):
         robot_pos_world = np.array(self.robot_node.getPosition())
         robot_rot_world = np.array(self.robot_node.getOrientation()).reshape(3, 3) 
         
@@ -162,28 +164,27 @@ class UR10e_Robot:
         if joint_angles is not None:
             for i in range(6):
                 self.motors[i].setPosition(joint_angles[i])
-            self.wait_to_arrive(joint_angles)
+            if wait:
+                self.wait_to_arrive(joint_angles)
         else:
             print("      -> [Error] Target out of physical reach.")
 
     def operate_gripper(self, close=True):
-            scissor_angle = 0.17 if close else 0.0
+        scissor_angle = 0.17 if close else 0.0
 
-            for s_motor in self.scissor_motors:
-                s_motor.setPosition(scissor_angle)
+        for s_motor in self.scissor_motors:
+            s_motor.setPosition(scissor_angle)
 
-            for g_motor in self.gripper_motors:
-                name = g_motor.getName()
+        for g_motor in self.gripper_motors:
+            name = g_motor.getName()
+            if 'joint_3' in name:
+                target_angle = -GRIPPER_TARGET_ANGLE_CLOSED if close else -GRIPPER_TARGET_ANGLE_OPEN
+            else:
+                target_angle = GRIPPER_TARGET_ANGLE_CLOSED if close else GRIPPER_TARGET_ANGLE_OPEN
                 
-                # The fingertip joints (joint_3) curl using negative numbers!
-                if 'joint_3' in name:
-                    target_angle = -0.85 if close else -0.06
-                else:
-                    # The base and middle knuckles curl using positive numbers
-                    target_angle = 0.85 if close else 0.05
-                    
-                g_motor.setPosition(target_angle)
-                
-            # Let the physics engine execute the clamp
-            for _ in range(int(1000 / self.timestep)):
-                self.supervisor.step(self.timestep)
+            g_motor.setPosition(target_angle)
+            
+        # --- THE MECHANICAL DELAY ---
+        # The driver forces the simulation to wait 500ms for the servos to actually move
+        for _ in range(int(500 / self.timestep)):
+            self.supervisor.step(self.timestep)

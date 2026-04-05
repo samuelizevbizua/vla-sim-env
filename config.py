@@ -20,13 +20,36 @@ SIM_TABLE_DEF = "SIM_TABLE"
 
 # -- HUGGING FACE AND PROMPT CONFIG ---
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
-HF_MODEL = "gemini-2.5-flash"
+HF_BASE_URL = os.getenv("HF_BASE_URL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# --- VLA CLOUD CONFIG ---
+# --- MODEL PROMPTS AND CONFIG ---
+VLM_MODEL = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
+VLM_MODEL2 = "gemini-2.5-flash"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 
-def GET_RECEIVER_BASE64_IMAGE(receiver):
+MODEL_CONFIG = {
+    "temperature": 0.0,
+    "max_tokens": 512,
+    "max_retries": 3
+}
+
+VLM_USER_PROMPTS = {
+    "baseline_all": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "nudge_cube": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "nudge_bin": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}"
+}
+
+# GRIPPER PARAMETERS
+GRIPPER_TARGET_HOVER_HEIGHT = 0.035
+GRIPPER_LIFT_HEIGHT = 0.15
+GRIPPER_TARGET_ANGLE_OPEN = 0.06
+GRIPPER_TARGET_ANGLE_CLOSED = 0.85
+
+# TESTING / DEBUGGING PARAMETERS
+NUDGE_TOLERANCE_NORM = 0.02 # Normalized distance threshold for nudge detection (approx 1.5cm to 2cm on table)
+
+def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False):
     last_packet = None
     while receiver.getQueueLength() > 0:
         last_packet = receiver.getBytes()
@@ -37,8 +60,9 @@ def GET_RECEIVER_BASE64_IMAGE(receiver):
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
         # Preview for debugging
-        cv2.imshow("AI Feed", frame)
-        cv2.waitKey(1)
+        if preview_img:
+            cv2.imshow("AI Feed", frame)
+            cv2.waitKey(1)
 
         #Direct memory encoding to Base64 (No disk I/O)
         _, buffer = cv2.imencode('.jpg', frame)
@@ -51,3 +75,16 @@ def RESIZE_IMAGE(base64_img):
     image     = Image.open(BytesIO(img_bytes)).convert("RGB")
     image     = image.resize((224, 224), Image.LANCZOS)
     return image
+
+def PIXEL_TO_WORLD(px, py, _height, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y):
+    _ground_w = 2.0 * _height * np.tan(0.67 / 2.0)
+    _ground_h = _ground_w * (CAM_HEIGHT / CAM_WIDTH)
+    MPP_X =  _ground_w / CAM_WIDTH
+    MPP_Y = -_ground_h / CAM_HEIGHT
+
+    # Math Mapping
+    cx, cy = CAM_WIDTH / 2.0, CAM_HEIGHT / 2.0
+    world_x = round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3)
+    world_y = round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3)
+    
+    return world_x, world_y

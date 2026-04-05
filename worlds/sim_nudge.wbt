@@ -14,17 +14,20 @@ WorldInfo {
   info [
     "This example showcases Franka Emika's Panda robot in a factory setting."
   ]
-  title "Panda demo"
+  title "UR Demo"
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.18478552705361181 -0.19139743612014026 0.9639612701961401 4.703737777473969
-  position 1.0658368503055775 10.41734743370916 5.2959422864154755
+  orientation -0.1921036703720476 -0.24098892889820772 0.9513256624195956 4.881462674846693
+  position -1.0205410382332696 6.748509306123668 3.4298334914983624
   ambientOcclusionRadius 1
 }
 TexturedBackground {
   texture "factory"
   skybox FALSE
+}
+DirectionalLight {
+  intensity 0.5
 }
 Floor {
   size 6 6
@@ -41,7 +44,7 @@ DEF SIM_TABLE Table {
   trayAppearance Parquetry {
     type "light strip"
     colorOverride 0.8 0.760784 0.619608
-    IBLStrength 4
+    IBLStrength 1.5
   }
   legAppearance BrushedAluminium {
     colorOverride 0.333 0.341 0.325
@@ -60,22 +63,32 @@ Table {
     colorOverride 0.333 0.341 0.325
   }
 }
-DEF BIN_1 PlasticCrate {
-  translation -0.53 0.58 0.7
-  rotation 0 0 -0.9999999999999999 1.5707953071795862
-  name "plastic crate(1)"
-  size 0.3 0.3 0.1
-  color 0 1 0
-}
-DEF BIN_2 PlasticCrate {
-  translation -0.52 1.04 0.7
+DEF BIN_Y PlasticCrate {
+  translation -0.43 0.84 0.7
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
   size 0.3 0.3 0.1
   color 1 1 0
 }
-DirectionalLight {
-  intensity 3.5
+DEF BLUE_CUBE_1 Solid {
+  translation 0.31 0.86 0.710935
+  rotation 8.64965e-12 -3.7629e-13 1 4.07987e-06
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.06 0.06 0.06
+      }
+    }
+  ]
+  name "solid(3)"
+  boundingObject Box {
+    size 0.06 0.06 0.06
+  }
+  physics Physics {
+  }
 }
 Robot {
   translation 0 0.84 2.7
@@ -87,7 +100,7 @@ Robot {
     DEF OVERHEAD_CAMERA Camera {
       rotation 0.577656895078166 -0.5771968951617173 -0.5771968951617173 -2.093935307179586
       name "overhead_camera"
-      fieldOfView 0.67
+      fieldOfView 0.7
       width 640
       height 450
     }
@@ -114,128 +127,9 @@ Robot {
   name "perspective_camera_rig"
   controller "perspective_camera_controller"
 }
-DEF RED_CUBE_1 Solid {
-  translation 0.46 1.11 0.709942079250189
-  rotation -0.3958839064217238 -0.7917678128434483 -0.46516627476782757 3.462241549050649e-17
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0 0
-      }
-      geometry Box {
-        size 0.07 0.07 0.07
-      }
-    }
-  ]
-  boundingObject Box {
-    size 0.07 0.07 0.07
-  }
-  physics Physics {
-  }
-}
-DEF RED_CUBE_2 Solid {
-  translation 0.52 0.83 0.70994207890978
-  rotation 0.9670288077295296 -0.24175720193238232 -0.08005460845591438 5.669513455889234e-17
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0 0
-      }
-      geometry Box {
-        size 0.07 0.07 0.07
-      }
-    }
-  ]
-  name "solid(1)"
-  boundingObject Box {
-    size 0.07 0.07 0.07
-  }
-  physics Physics {
-  }
-}
-DEF RED_CUBE_3 Solid {
-  translation 0.31 0.62 0.70994207890978
-  rotation 0.6725926963716833 -0.6725926963716825 -0.30860675555622313 4.0757079784177065e-17
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0 0
-      }
-      geometry Box {
-        size 0.07 0.07 0.07
-      }
-    }
-  ]
-  name "solid(2)"
-  boundingObject Box {
-    size 0.07 0.07 0.07
-  }
-  physics Physics {
-  }
-}
-DEF BLUE_CUBE_1 Solid {
-  translation 0.64 1.03 0.70994207890978
-  rotation 0.9131579977593363 -0.391353427611144 -0.11395159421951497 5.2534829621155294e-17
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0 0 1
-      }
-      geometry Box {
-        size 0.07 0.07 0.07
-      }
-    }
-  ]
-  name "solid(3)"
-  boundingObject Box {
-    size 0.07 0.07 0.07
-  }
-  physics Physics {
-  }
-}
-DEF BLUE_CUBE_2 Solid {
-  translation 0.21 1.17 0.709942079250189
-  rotation 0.7991958761440815 0.5993969071080607 0.04482520834959889 3.4300620169032736e-17
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0 0 1
-      }
-      geometry Box {
-        size 0.07 0.07 0.07
-      }
-    }
-  ]
-  name "solid(4)"
-  boundingObject Box {
-    size 0.07 0.07 0.07
-  }
-  physics Physics {
-  }
-}
-DEF BLUE_CUBE_3 Solid {
-  translation 0.62 0.52 0.70994207890978
-  rotation 0.9454620993522174 -0.31515403311740564 -0.08233683318133687 4.349129522017443e-17
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0 0 1
-      }
-      geometry Box {
-        size 0.07 0.07 0.07
-      }
-    }
-  ]
-  name "solid(5)"
-  boundingObject Box {
-    size 0.07 0.07 0.07
-  }
-  physics Physics {
-  }
-}
 UR10e {
   translation 0 0 0.7
-  controller "ik_controller"
+  controller "vlm_nudge"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [

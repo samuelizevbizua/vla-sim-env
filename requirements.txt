@@ -4,5 +4,6 @@ numpy
 opencv-python
 ur_analytic_ik 
 langchain
+langchain-openai
 langchain-google-genai
 pillow

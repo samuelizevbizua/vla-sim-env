@@ -3,7 +3,7 @@ os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Supervisor
-from UR import UR10e_Robot
+from utils.UR import UR10e_Robot
 from config import PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, GET_RECEIVER_BASE64_IMAGE, VLA_API_URL
 
 supervisor = Supervisor()
