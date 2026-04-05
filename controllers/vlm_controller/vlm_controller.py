@@ -5,7 +5,7 @@ It takes ONE picture, asks the VLM for coordinates, and blindly executes
 the entire sequence. This serves as the non-reactive baseline for comparison.
 """
 
-import os, sys, json
+import os, sys
 os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 

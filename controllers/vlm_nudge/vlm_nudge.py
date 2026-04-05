@@ -5,7 +5,7 @@ It uses the VLM to identify objects, then verifies their position
 after moving to ensure a "nudge" didn't occur during transit.
 """
 
-import os, sys, json, math
+import os, sys, math
 os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 

@@ -1,0 +1,149 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BakelitePlastic.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq3fGripper.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR10e.proto"
+
+WorldInfo {
+  info [
+    "This example showcases Franka Emika's Panda robot in a factory setting."
+  ]
+  title "UR Demo"
+  basicTimeStep 16
+}
+DEF VIEWPOINT Viewpoint {
+  orientation -0.1921036703720476 -0.24098892889820772 0.9513256624195956 4.881462674846693
+  position -1.0205410382332696 6.748509306123668 3.4298334914983624
+  ambientOcclusionRadius 1
+}
+TexturedBackground {
+  texture "factory"
+  skybox FALSE
+}
+DirectionalLight {
+  intensity 0.5
+}
+Floor {
+  size 6 6
+  tileSize 2 2
+  appearance BakelitePlastic {
+    color "braun"
+  }
+}
+DEF SIM_TABLE Table {
+  translation 0.01 0.84 0
+  size 1.5 1 0.68
+  feetSize 0.05 0.05
+  frameThickness 0.03
+  trayAppearance Parquetry {
+    type "light strip"
+    colorOverride 0.8 0.760784 0.619608
+    IBLStrength 1.5
+  }
+  legAppearance BrushedAluminium {
+    colorOverride 0.333 0.341 0.325
+  }
+}
+Table {
+  translation 0.01 0 0
+  name "robo_table"
+  size 0.5 0.5 0.7
+  feetSize 0.5 0.5
+  trayAppearance Parquetry {
+    type "dark strip"
+    colorOverride 0.933333 0.933333 0.92549
+  }
+  legAppearance BrushedAluminium {
+    colorOverride 0.333 0.341 0.325
+  }
+}
+DEF BIN_Y PlasticCrate {
+  translation -0.43 0.84 0.7
+  rotation 0 0 -0.9999999999999999 1.5707953071795862
+  name "plastic crate(2)"
+  size 0.3 0.3 0.1
+  color 1 1 0
+}
+DEF BLUE_CUBE_1 Solid {
+  translation 0.31 0.86 0.710935
+  rotation 8.64965e-12 -3.7629e-13 1 4.07987e-06
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 1
+      }
+      geometry Box {
+        size 0.06 0.06 0.06
+      }
+    }
+  ]
+  name "solid(3)"
+  boundingObject Box {
+    size 0.06 0.06 0.06
+  }
+  physics Physics {
+  }
+}
+Robot {
+  translation 0 0.84 2.7
+  children [
+    Emitter {
+      name "overhead_emitter"
+      channel 1
+    }
+    DEF OVERHEAD_CAMERA Camera {
+      rotation 0.577656895078166 -0.5771968951617173 -0.5771968951617173 -2.093935307179586
+      name "overhead_camera"
+      fieldOfView 0.7
+      width 640
+      height 450
+    }
+  ]
+  name "overhead_camera_rig"
+  controller "camera_controller"
+}
+Robot {
+  translation 0.02 2.2 1.6
+  rotation 0 1 0 0
+  children [
+    Emitter {
+      name "perspective_emitter"
+      channel 2
+    }
+    DEF PERSPECTIVE_CAMERA Camera {
+      rotation -0.20828796862017018 -0.20828796862017018 0.955631856028338 -1.6161653071795863
+      name "perspective_camera"
+      fieldOfView 1
+      width 640
+      height 450
+    }
+  ]
+  name "perspective_camera_rig"
+  controller "perspective_camera_controller"
+}
+UR10e {
+  translation 0 0 0.7
+  controller "ik_controller"
+  supervisor TRUE
+  selfCollision FALSE
+  toolSlot [
+    Receiver {
+      name "perspective_receiver"
+      channel 2
+      bufferSize 2000000
+    }
+    Receiver {
+      name "overhead_receiver"
+      channel 1
+      bufferSize 2000000
+    }
+    Robotiq3fGripper {
+    }
+  ]
+}
