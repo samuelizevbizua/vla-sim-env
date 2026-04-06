@@ -2,12 +2,7 @@ import json
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from config import (HF_API_TOKEN, HF_BASE_URL, GOOGLE_API_KEY, SELECTED_VLM)
-
-VLMS = {
-    1: {"label": "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"},
-    2: {"label": "gemini-2.5-flash"},
-}
+from config import (HF_API_TOKEN, HF_BASE_URL, GOOGLE_API_KEY, SELECTED_VLM, VLM_PATHS)
 
 MODEL_CONFIG = {
     "temperature": 0.0,
@@ -25,7 +20,7 @@ VLM_SYSTEM_PROMPT = (
 def SELECT_VLM():
     if SELECTED_VLM == 1:
         return ChatOpenAI(
-            model=VLMS[SELECTED_VLM]["label"],
+            model=VLM_PATHS[SELECTED_VLM]["path"],
             api_key=HF_API_TOKEN,
             base_url=HF_BASE_URL,
             temperature=MODEL_CONFIG["temperature"],
@@ -34,7 +29,7 @@ def SELECT_VLM():
         )
     else:
         return ChatGoogleGenerativeAI(
-            model=VLMS[SELECTED_VLM]["label"],
+            model=VLM_PATHS[SELECTED_VLM]["path"],
             api_key=GOOGLE_API_KEY,
             temperature=MODEL_CONFIG["temperature"],
             max_retries=MODEL_CONFIG["max_retries"],

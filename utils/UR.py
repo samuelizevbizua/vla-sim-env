@@ -1,6 +1,6 @@
 import numpy as np
 from ur_analytic_ik import ur10e
-from config import GRIPPER_TARGET_ANGLE_OPEN, GRIPPER_TARGET_ANGLE_CLOSED
+from config import GRIPPER_TARGET_ANGLE_OPEN, GRIPPER_TARGET_ANGLE_CLOSED,  ARM_MOTOR_VELOCITY, GRIPPER_MOTOR_VELOCITY
 
 class IK_Solver:
     def __init__(self, gripper_length: float = 0.16) -> None:
@@ -85,7 +85,7 @@ class UR10e_Robot:
         for name in motor_names:
             motor = self.supervisor.getDevice(name)
             if motor:
-                motor.setVelocity(1.0) 
+                motor.setVelocity(ARM_MOTOR_VELOCITY)
                 self.motors.append(motor)
                 sensor = motor.getPositionSensor()
                 sensor.enable(self.timestep)
@@ -173,9 +173,11 @@ class UR10e_Robot:
         scissor_angle = 0.17 if close else 0.0
 
         for s_motor in self.scissor_motors:
+            s_motor.setVelocity(GRIPPER_MOTOR_VELOCITY)
             s_motor.setPosition(scissor_angle)
 
         for g_motor in self.gripper_motors:
+            g_motor.setVelocity(GRIPPER_MOTOR_VELOCITY)
             name = g_motor.getName()
             if 'joint_3' in name:
                 target_angle = -GRIPPER_TARGET_ANGLE_CLOSED if close else -GRIPPER_TARGET_ANGLE_OPEN

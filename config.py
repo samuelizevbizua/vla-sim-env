@@ -18,6 +18,8 @@ PERSPECTIVE_RECEIVER = "perspective_receiver"
 
 SIM_TABLE_DEF = "SIM_TABLE"
 
+ARM_MOTOR_VELOCITY = 1.0
+GRIPPER_MOTOR_VELOCITY = 0.6
 GRIPPER_TARGET_HOVER_HEIGHT = 0.035
 GRIPPER_LIFT_HEIGHT = 0.2
 GRIPPER_TARGET_ANGLE_OPEN = 0.06
@@ -29,15 +31,20 @@ HF_BASE_URL = os.getenv("HF_BASE_URL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # VLM CONFIG
+VLM_PATHS = {
+    1: {"path": "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"},
+    2: {"path": "gemini-2.5-flash"},
+}
 SELECTED_VLM = 1
 VLM_USER_PROMPTS = {
     "baseline": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
-    "nudge": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "nudge_obj": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "nudge_bin": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
     "ood_test": "Identify the jam jar and the YELLOW sorting bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
 # VLA CONFIG
+VLA_PATH = "openvla/openvla-7b"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 DELTA_SCALE = 0.5 # How many physics steps to wait between taking pictures (simulates real-world Hz)
 INFERENCE_EVERY_N = 5 
