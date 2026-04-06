@@ -9,6 +9,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq3fGripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR10e.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/breakfast/protos/JamJar.proto"
 
 WorldInfo {
   info [
@@ -18,8 +19,8 @@ WorldInfo {
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.1921036703720476 -0.24098892889820772 0.9513256624195956 4.881462674846693
-  position -1.0205410382332696 6.748509306123668 3.4298334914983624
+  orientation -0.3223762469220337 -0.3451290904347177 0.8814530426268709 4.650358926971795
+  position -0.08282533759040586 3.4231205030506935 3.3053033748813774
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -64,14 +65,14 @@ Table {
   }
 }
 DEF BIN_Y PlasticCrate {
-  translation -0.43 0.84 0.7
+  translation -0.43 0.84 0.68
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
   size 0.3 0.3 0.1
   color 1 1 0
 }
-DEF BLUE_CUBE_1 Solid {
-  translation 0.31 0.86 0.710935
+DEF OBJ1 Solid {
+  translation 0.31 0.62 0.710935
   rotation 8.64965e-12 -3.7629e-13 1 4.07987e-06
   children [
     Shape {
@@ -89,6 +90,9 @@ DEF BLUE_CUBE_1 Solid {
   }
   physics Physics {
   }
+}
+DEF OBJ2 JamJar {
+  translation 0.31 1.08 0.68
 }
 Robot {
   translation 0 0.84 2.7

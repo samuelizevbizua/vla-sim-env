@@ -64,13 +64,13 @@ Table {
   }
 }
 DEF BIN_Y PlasticCrate {
-  translation -0.43 0.84 0.7
+  translation -0.43 0.84 0.68
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
   size 0.3 0.3 0.1
   color 1 1 0
 }
-DEF BLUE_CUBE_1 Solid {
+DEF OBJ1 Solid {
   translation 0.31 0.86 0.710935
   rotation 8.64965e-12 -3.7629e-13 1 4.07987e-06
   children [

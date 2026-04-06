@@ -13,7 +13,9 @@ from config import GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT
 supervisor = Supervisor()
 robot = UR10e_Robot(supervisor)
 
-target = supervisor.getFromDef("BLUE_CUBE_1")
+target = supervisor.getFromDef("OBJ1")
+# target = supervisor.getFromDef("OBJ2")
+
 dest = supervisor.getFromDef("BIN_Y") 
 
 timestep = int(supervisor.getBasicTimeStep())
