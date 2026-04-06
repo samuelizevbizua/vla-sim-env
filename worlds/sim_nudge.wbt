@@ -63,7 +63,7 @@ Table {
     colorOverride 0.333 0.341 0.325
   }
 }
-DEF BIN_Y PlasticCrate {
+DEF BIN PlasticCrate {
   translation -0.43 0.84 0.68
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"

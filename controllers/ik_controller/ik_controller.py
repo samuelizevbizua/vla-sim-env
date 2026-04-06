@@ -16,7 +16,7 @@ robot = UR10e_Robot(supervisor)
 target = supervisor.getFromDef("OBJ1")
 # target = supervisor.getFromDef("OBJ2")
 
-dest = supervisor.getFromDef("BIN_Y") 
+dest = supervisor.getFromDef("BIN") 
 
 timestep = int(supervisor.getBasicTimeStep())
 task_state = "PICKING" 
