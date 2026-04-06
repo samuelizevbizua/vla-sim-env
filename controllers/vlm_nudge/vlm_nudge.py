@@ -56,7 +56,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
     if not img: continue
 
     content = [
-        {"type": "text", "text": VLM_USER_PROMPTS["nudge_cube"] if task_state == "PICKING" else VLM_USER_PROMPTS["nudge_bin"]},
+        {"type": "text", "text": VLM_USER_PROMPTS["nudge"]},
         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
     ]
 

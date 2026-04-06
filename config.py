@@ -18,27 +18,34 @@ PERSPECTIVE_RECEIVER = "perspective_receiver"
 
 SIM_TABLE_DEF = "SIM_TABLE"
 
+GRIPPER_TARGET_HOVER_HEIGHT = 0.035
+GRIPPER_LIFT_HEIGHT = 0.2
+GRIPPER_TARGET_ANGLE_OPEN = 0.06
+GRIPPER_TARGET_ANGLE_CLOSED = 0.85
+
 # -- HUGGING FACE AND PROMPT CONFIG ---
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 HF_BASE_URL = os.getenv("HF_BASE_URL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
+# VLM CONFIG
 SELECTED_VLM = 1
-VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
-
 VLM_USER_PROMPTS = {
-    "baseline_all": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
-    "nudge_cube": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge_bin": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
-
+    "baseline": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "nudge": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "nudge": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
     "ood_test": "Identify the jam jar and the YELLOW sorting bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
-# GRIPPER PARAMETERS
-GRIPPER_TARGET_HOVER_HEIGHT = 0.035
-GRIPPER_LIFT_HEIGHT = 0.2
-GRIPPER_TARGET_ANGLE_OPEN = 0.06
-GRIPPER_TARGET_ANGLE_CLOSED = 0.85
+# VLA CONFIG
+VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
+DELTA_SCALE = 0.5 # How many physics steps to wait between taking pictures (simulates real-world Hz)
+INFERENCE_EVERY_N = 5 
+VLA_USER_PROMPTS = {
+    "baseline": "pick up the blue cube and put it in the yellow bin",
+    "nudge": "pick up the blue cube and put it in the yellow bin",
+    "ood": "pick up the jam jar and put it in the yellow bin"
+}
 
 # TESTING / DEBUGGING PARAMETERS
 NUDGE_TOLERANCE_NORM = 0.02 # Normalized distance threshold for nudge detection (approx 1.5cm to 2cm on table)

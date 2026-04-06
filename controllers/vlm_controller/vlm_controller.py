@@ -54,7 +54,7 @@ img = GET_RECEIVER_BASE64_IMAGE(receiver)
 
 if img is not None:
     content = [
-        {"type": "text", "text": VLM_USER_PROMPTS["baseline_all"]},
+        {"type": "text", "text": VLM_USER_PROMPTS["baseline"]},
         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
     ]
 
