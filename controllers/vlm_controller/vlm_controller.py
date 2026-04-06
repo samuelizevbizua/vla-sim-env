@@ -11,27 +11,18 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from controller import Supervisor
 from utils.UR import UR10e_Robot
-from utils.VLM import ASK
+from utils.VLM import ASK, SELECT_VLM
 
 from config import (
     OVERHEAD_CAM_DEF, 
     OVERHEAD_RECEIVER, 
     SIM_TABLE_DEF, 
-    GET_RECEIVER_BASE64_IMAGE, 
-    HF_API_TOKEN, 
-    GOOGLE_API_KEY,
-    HF_BASE_URL,
-    VLM_MODEL,
-    VLM_MODEL2,
-    MODEL_CONFIG,
+    GET_RECEIVER_BASE64_IMAGE,
     VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, 
     GRIPPER_LIFT_HEIGHT,
     PIXEL_TO_WORLD
 )
-
-# from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Initialize Webots
 supervisor = Supervisor()
@@ -53,21 +44,7 @@ _height = CAM_Z - TABLE_HEIGHT
 
 print("\n[Brain] Initializing Single-Pass VLM")
 
-# llm = ChatOpenAI(
-#     model=VLM_MODEL,
-#     api_key=HF_API_TOKEN,
-#     base_url=HF_BASE_URL,
-#     temperature=MODEL_CONFIG["temperature"],      
-#     max_tokens=MODEL_CONFIG["max_tokens"],
-#     max_retries=MODEL_CONFIG["max_retries"],
-# )
-
-llm = ChatGoogleGenerativeAI(
-    model=VLM_MODEL2,
-    api_key=GOOGLE_API_KEY,
-    temperature=MODEL_CONFIG["temperature"],
-    max_retries=MODEL_CONFIG["max_retries"],
-)
+llm = SELECT_VLM()
 
 # Settle the simulation physics & camera buffer
 for _ in range(int(1000 / timestep)): 

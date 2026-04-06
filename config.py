@@ -23,16 +23,8 @@ HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 HF_BASE_URL = os.getenv("HF_BASE_URL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# --- MODEL PROMPTS AND CONFIG ---
-VLM_MODEL = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
-VLM_MODEL2 = "gemini-2.5-flash"
+SELECTED_VLM = 1
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
-
-MODEL_CONFIG = {
-    "temperature": 0.0,
-    "max_tokens": 512,
-    "max_retries": 3
-}
 
 VLM_USER_PROMPTS = {
     "baseline_all": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
@@ -42,7 +34,7 @@ VLM_USER_PROMPTS = {
 
 # GRIPPER PARAMETERS
 GRIPPER_TARGET_HOVER_HEIGHT = 0.035
-GRIPPER_LIFT_HEIGHT = 0.15
+GRIPPER_LIFT_HEIGHT = 0.2
 GRIPPER_TARGET_ANGLE_OPEN = 0.06
 GRIPPER_TARGET_ANGLE_CLOSED = 0.85
 
