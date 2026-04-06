@@ -29,7 +29,9 @@ VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 VLM_USER_PROMPTS = {
     "baseline_all": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
     "nudge_cube": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge_bin": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}"
+    "nudge_bin": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
+
+    "ood_test": "Identify the jam jar and the YELLOW sorting bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
 # GRIPPER PARAMETERS
