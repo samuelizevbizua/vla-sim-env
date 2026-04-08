@@ -33,7 +33,7 @@ current_y = float(table_pos[1])
 current_z = TABLE_HEIGHT + 0.2
 
 print("[System] Moving to start pose...")
-robot.move_to_world_target([current_x, current_y, current_z])
+robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
 # Let physics settle
@@ -70,7 +70,7 @@ while supervisor.step(timestep) != -1:
     current_z += dz * DELTA_SCALE
 
     # Command the robot
-    robot.move_to_world_target([current_x, current_y, current_z])
+    robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
     
     if gripper_state > 0.5:
         robot.operate_gripper(close=True)

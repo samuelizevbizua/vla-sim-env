@@ -77,7 +77,6 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             robot.operate_gripper(close=False)
             robot.move_to_world_target([wx, wy, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
             
-            for _ in range(int(500 / timestep)): supervisor.step(timestep)
             prev_coords = curr_coords
             continue 
             

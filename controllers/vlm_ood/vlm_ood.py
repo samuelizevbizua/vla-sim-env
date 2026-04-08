@@ -60,10 +60,12 @@ if img is not None:
 
         print(f"\n[Muscle] Executing OOD Pick-and-Place sequence...")
         
-        robot.operate_gripper(close=False) 
+        robot.operate_gripper(close=False)
+        
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_TARGET_HOVER_HEIGHT]) 
-        robot.operate_gripper(close=True)                                       
+        robot.operate_gripper(close=True)   
+        
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
         robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)

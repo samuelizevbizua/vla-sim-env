@@ -72,19 +72,12 @@ if img is not None:
         robot.operate_gripper(close=False) 
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
         
-        print(" -> Plunging...")
+        print(" -> Plunging to grab...")
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_TARGET_HOVER_HEIGHT]) 
-        
-        # # Physics pause to bleed off momentum
-        # for _ in range(int(300 / timestep)): supervisor.step(timestep) 
-        
-        print(" -> Grabbing...")
         robot.operate_gripper(close=True)                                       
         
-        print(" -> Lifting...")
+        print(" -> Lifting to bin...")
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
-        
-        print(" -> Moving to Bin...")
         robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         
         print(" -> Releasing...")

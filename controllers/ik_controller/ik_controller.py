@@ -27,12 +27,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
         robot.operate_gripper(close=False) 
         robot.move_to_world_target([pos[0], pos[1], pos[2] + GRIPPER_LIFT_HEIGHT])
 
-        for _ in range(int(500 / timestep)): supervisor.step(timestep)
-
         robot.move_to_world_target([pos[0], pos[1], pos[2] + GRIPPER_TARGET_HOVER_HEIGHT])
-        
-        for _ in range(int(300 / timestep)): supervisor.step(timestep)
-
         robot.operate_gripper(close=True)
         
         robot.move_to_world_target([pos[0], pos[1], pos[2] + GRIPPER_LIFT_HEIGHT])
@@ -42,10 +37,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
     elif task_state == "DROPPING":
         dest_pos = dest.getPosition()
         
-        robot.move_to_world_target([dest_pos[0], dest_pos[1], dest_pos[2] + GRIPPER_LIFT_HEIGHT])
-        
-        for _ in range(int(500 / timestep)): supervisor.step(timestep)
-        
+        robot.move_to_world_target([dest_pos[0], dest_pos[1], dest_pos[2] + GRIPPER_LIFT_HEIGHT])        
         robot.operate_gripper(close=False)
 
         task_state = "DONE"
