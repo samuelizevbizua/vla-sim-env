@@ -30,10 +30,8 @@ class IK_Solver:
         ])
 
         # --- THE WRIST TWIST ---
-        # Twist the wrist by 45 degrees (np.pi / 4). 
-        # You can change this to np.pi / 6 for a 30-degree twist!
-        twist_angle = np.pi / 4
-        
+        # Twist the wrist around the Z-axis. 
+        twist_angle = np.radians(25) 
         twist_matrix = np.array([
             [np.cos(twist_angle), -np.sin(twist_angle), 0],
             [np.sin(twist_angle),  np.cos(twist_angle), 0],
@@ -129,10 +127,17 @@ class UR10e_Robot:
             [0,                     0,                    1]
         ])
 
-    def wait_to_arrive(self, target_joints, tolerance=0.02, timeout_seconds=3.0):
+    def _wait_to_arrive(self, target_joints, is_gripper=False):
+        tolerance, timeout_seconds = 0.02, 3.0
         max_steps = int((timeout_seconds * 1000) / self.timestep)
         steps = 0
-        
+
+        if is_gripper:
+            gripper_stall_steps = int(1500 / self.timestep) # Wait 1.5 seconds to clamp
+            for _ in range(gripper_stall_steps):
+                self.supervisor.step(self.timestep)
+            return
+
         while self.supervisor.step(self.timestep) != -1:
             current_joints = [s.getValue() for s in self.sensors]
             error = np.max(np.abs(np.array(target_joints) - np.array(current_joints)))
@@ -149,7 +154,7 @@ class UR10e_Robot:
                 print(f"      -> [Timeout] Forcing next step.")
                 break
 
-    def move_to_world_target(self, target_pos_world, wait=True):
+    def move_to_world_target(self, target_pos_world, wait=True, settle_time_ms=300):
         robot_pos_world = np.array(self.robot_node.getPosition())
         robot_rot_world = np.array(self.robot_node.getOrientation()).reshape(3, 3) 
         
@@ -165,7 +170,13 @@ class UR10e_Robot:
             for i in range(6):
                 self.motors[i].setPosition(joint_angles[i])
             if wait:
-                self.wait_to_arrive(joint_angles)
+                self._wait_to_arrive(joint_angles)
+                
+            if settle_time_ms > 0:
+                timestep = int(self.supervisor.getBasicTimeStep())
+                steps = int(settle_time_ms / timestep)
+                for _ in range(steps):
+                    self.supervisor.step(timestep)
         else:
             print("      -> [Error] Target out of physical reach.")
 
@@ -185,8 +196,9 @@ class UR10e_Robot:
                 target_angle = GRIPPER_TARGET_ANGLE_CLOSED if close else GRIPPER_TARGET_ANGLE_OPEN
                 
             g_motor.setPosition(target_angle)
-            
-        # --- THE MECHANICAL DELAY ---
-        # The driver forces the simulation to wait 500ms for the servos to actually move
-        for _ in range(int(500 / self.timestep)):
-            self.supervisor.step(self.timestep)
+
+        # Wait for the physical movement to finish
+        if close:
+            self._wait_to_arrive([target_angle]*6, is_gripper=True)
+        else:
+            self._wait_to_arrive([-GRIPPER_TARGET_ANGLE_OPEN]*6, is_gripper=True)
