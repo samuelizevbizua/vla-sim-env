@@ -84,8 +84,8 @@ def RESIZE_IMAGE(base64_img):
     image     = image.resize((224, 224), Image.LANCZOS)
     return image
 
-def PIXEL_TO_WORLD(px, py, _height, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y):
-    _ground_w = 2.0 * _height * np.tan(0.67 / 2.0)
+def PIXEL_TO_WORLD(px, py, _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y):
+    _ground_w = 2.0 * _height * np.tan(CAM_FOV / 2.0)
     _ground_h = _ground_w * (CAM_HEIGHT / CAM_WIDTH)
     MPP_X =  _ground_w / CAM_WIDTH
     MPP_Y = -_ground_h / CAM_HEIGHT

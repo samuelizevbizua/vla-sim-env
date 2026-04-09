@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLM import ASK, SELECT_VLM
+from utils.TEST import LOG_BASELINE
 
 from config import (
     OVERHEAD_CAM_DEF, 
@@ -35,6 +36,7 @@ receiver.enable(timestep)
 cam_node = supervisor.getFromDef(OVERHEAD_CAM_DEF)
 CAM_WIDTH = cam_node.getField("width").getSFInt32()
 CAM_HEIGHT = cam_node.getField("height").getSFInt32()
+CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
 
 cam_rig = cam_node.getParentNode()
 CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
@@ -42,13 +44,15 @@ CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
 TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
 _height = CAM_Z - TABLE_HEIGHT
 
-print("\n[Brain] Initializing Single-Pass VLM")
+print("\n[Brain] Initializing Single-Pass VLM Test")
 
 llm = SELECT_VLM()
 
-# Settle the simulation physics & camera buffer
-for _ in range(int(1000 / timestep)): 
-    supervisor.step(timestep)
+# Boot-up pause
+for _ in range(int(1000 / timestep)): supervisor.step(timestep)
+
+start_time = supervisor.getTime()
+initial_cube_pos = supervisor.getFromDef("OBJ1").getPosition()
 
 img = GET_RECEIVER_BASE64_IMAGE(receiver)
 
@@ -64,8 +68,8 @@ if img is not None:
         args = ASK(llm, content)
         print(f" -> [Brain] Output: {args}")
 
-        pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'], _height, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
-        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], _height, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
 
         print(f"\n[Muscle] Executing Blind Pick-and-Place sequence...")
         
@@ -83,6 +87,20 @@ if img is not None:
         print(" -> Releasing...")
         robot.operate_gripper(close=False)
 
+        # --- END REFEREE LOGGING ---
+        end_time = supervisor.getTime()
+        
+        LOG_BASELINE(
+            supervisor=supervisor, 
+            architecture="VLM", 
+            start_time=start_time, 
+            end_time=end_time, 
+            predicted_pick=(pick_x, pick_y), 
+            predicted_drop=(drop_x, drop_y), 
+            initial_target_pos=initial_cube_pos, 
+            target_def="OBJ1", 
+            bin_def="BIN"
+        )
         print("\n[System] Sequence Complete!")
 
     except Exception as e:
@@ -90,7 +108,5 @@ if img is not None:
 else:
     print("[Error] Failed to capture image.")
 
-# Step 3: Terminal Idle
 print("\n[System] Entering Terminal Idle State.")
-while supervisor.step(timestep) != -1:
-    pass
+while supervisor.step(timestep) != -1: pass

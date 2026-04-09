@@ -36,6 +36,7 @@ receiver.enable(timestep)
 cam_node = supervisor.getFromDef(OVERHEAD_CAM_DEF)
 CAM_WIDTH = cam_node.getField("width").getSFInt32()
 CAM_HEIGHT = cam_node.getField("height").getSFInt32()
+CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
 
 cam_rig = cam_node.getParentNode()
 CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
@@ -70,7 +71,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             continue
 
         curr_coords = (data['x'], data['y'])
-        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
         
         if prev_coords is None:
             print(f" -> Cube sensed at norm {curr_coords}. Moving to Hover...")
@@ -106,7 +107,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             continue
 
         curr_coords = (data['x'], data['y'])
-        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
         
         print(f" -> Bin sensed at {curr_coords}. Moving to Drop Zone...")
         robot.move_to_world_target([wx, wy, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])

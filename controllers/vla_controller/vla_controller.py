@@ -1,6 +1,7 @@
 """
 VLA Continuous Baseline Controller
 Uses OpenVLA via a cloud server to continuously predict delta movements.
+Includes automated state-tracking for Baseline Logging.
 """
 
 import os, sys
@@ -10,9 +11,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLA import ACTION
+from utils.TEST import LOG_BASELINE 
 
 from config import (
-    PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, 
+    PERSPECTIVE_RECEIVER, SIM_TABLE_DEF,
     GET_RECEIVER_BASE64_IMAGE, DELTA_SCALE, INFERENCE_EVERY_N, VLA_USER_PROMPTS
 )
 
@@ -20,7 +22,6 @@ supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = UR10e_Robot(supervisor)
 
-# Important: VLAs prefer perspective cameras!
 receiver = supervisor.getDevice(PERSPECTIVE_RECEIVER)
 receiver.enable(timestep)
 
@@ -36,35 +37,44 @@ print("[System] Moving to start pose...")
 robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
-# Let physics settle
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 
 print("\n[Brain] VLA Continuous Loop starting...\n")
+
+# --- REFEREE TRACKING VARIABLES ---
+start_time = supervisor.getTime()
+initial_cube_pos = supervisor.getFromDef("OBJ1").getPosition()
+
+predicted_pick = (current_x, current_y) 
+predicted_drop = (current_x, current_y)
+
+has_picked = False
+MAX_TRIAL_TIME_SEC = 120.0  
+# ----------------------------------
+
 step_counter = 0
 
 while supervisor.step(timestep) != -1:
     step_counter += 1
+    current_time = supervisor.getTime()
 
-    # Only ask the VLA for a new move every N timesteps
-    if step_counter % INFERENCE_EVERY_N != 0:
-        continue
+    if (current_time - start_time) > MAX_TRIAL_TIME_SEC:
+        print("\n[Referee] Trial timed out! VLA failed to complete the task.")
+        break
+
+    if step_counter % INFERENCE_EVERY_N != 0: continue
 
     img = GET_RECEIVER_BASE64_IMAGE(receiver)
     if not img: continue
 
-    # Ask the VLA for the next delta step
     action = ACTION(img, VLA_USER_PROMPTS["baseline"])
-    
-    if action is None:
-        continue # Skip this frame if network lags
+    if action is None: continue 
 
-    # Parse the action array
     dx, dy, dz = action[0], action[1], action[2]
     gripper_state = action[6]
 
     print(f"[VLA] dx={dx:+.4f} | dy={dy:+.4f} | dz={dz:+.4f} | grip={gripper_state:.2f}")
 
-    # Apply the delta to our current absolute position
     current_x += dx * DELTA_SCALE
     current_y += dy * DELTA_SCALE
     current_z += dz * DELTA_SCALE
@@ -72,7 +82,34 @@ while supervisor.step(timestep) != -1:
     # Command the robot
     robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
     
+    # --- REFEREE STATE MACHINE ---
     if gripper_state > 0.5:
         robot.operate_gripper(close=True)
+        if not has_picked:
+            print(" -> [State] VLA initiated Pick!")
+            predicted_pick = (current_x, current_y)
+            has_picked = True
     else:
         robot.operate_gripper(close=False)
+        if has_picked:
+            print(" -> [State] VLA initiated Drop! Ending sequence.")
+            predicted_drop = (current_x, current_y)
+            break 
+    # -----------------------------
+
+end_time = supervisor.getTime()
+
+LOG_BASELINE(
+    supervisor=supervisor,
+    architecture="VLA",
+    start_time=start_time,
+    end_time=end_time,
+    predicted_pick=predicted_pick,
+    predicted_drop=predicted_drop,
+    initial_target_pos=initial_cube_pos,
+    target_def="OBJ1",
+    bin_def="BIN"
+)
+
+print("\n[System] Entering Terminal Idle State.")
+while supervisor.step(timestep) != -1: pass
