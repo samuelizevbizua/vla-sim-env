@@ -8,3 +8,5 @@ __pycache__/
 worlds/*.wbproj
 tmp/
 .env
+
+results/

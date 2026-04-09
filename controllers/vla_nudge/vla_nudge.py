@@ -1,20 +1,22 @@
 """
-VLA Nudge Controller (Continuous Tracking)
+VLA Nudge Controller (Continuous Reflex Test)
 Tests if the end-to-end continuous policy can dynamically adjust 
 to mid-flight target perturbations without a discrete state machine.
 """
 
-import os, sys
+import os, sys, math
 os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLA import ACTION
+from utils.TEST import AUTOMATE_NUDGE, LOG_NUDGE_METRICS
 
 from config import (
     PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
-    GET_RECEIVER_BASE64_IMAGE, DELTA_SCALE, INFERENCE_EVERY_N
+    GET_RECEIVER_BASE64_IMAGE, DELTA_SCALE, INFERENCE_EVERY_N,
+    TARGET_NUDGES
 )
 
 supervisor = Supervisor()
@@ -38,10 +40,19 @@ robot.operate_gripper(close=False)
 
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 
-print("\n[Brain] VLA Dynamic Nudge Loop starting...")
-print(" -> [Instruction] Please perturb the blue cube in the simulator now.\n")
+# --- NUDGE TEST TRACKING VARIABLES ---
+nudges_performed = 0
+nudge_history = []
+current_nudge_truth = None
+# ------------------------------------------
 
+start_time = supervisor.getTime()
+predicted_drop = None
+final_pick_error = 999.0
+has_picked = False
 step_counter = 0
+
+print(f"\n[Brain] Starting Automated VLA Nudge Test (Target Nudges: {TARGET_NUDGES})...")
 
 while supervisor.step(timestep) != -1:
     step_counter += 1
@@ -54,14 +65,68 @@ while supervisor.step(timestep) != -1:
     action = ACTION(img, VLA_USER_PROMPTS["nudge"])
     if action is None: continue 
 
-    dx, dy, dz = action[0], action[1], action[2]
+    current_x += action[0] * DELTA_SCALE
+    current_y += action[1] * DELTA_SCALE
+    current_z += action[2] * DELTA_SCALE
     gripper_state = action[6]
 
-    print(f"[VLA Tracking] dx={dx:+.4f} | dy={dy:+.4f} | dz={dz:+.4f} | grip={gripper_state:.2f}")
-
-    current_x += dx * DELTA_SCALE
-    current_y += dy * DELTA_SCALE
-    current_z += dz * DELTA_SCALE
-
     robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
-    robot.operate_gripper(close=(gripper_state > 0.5))
+    
+    # --- AUTOMATED PERTURBATION LOGIC ---
+    if not has_picked and nudges_performed < TARGET_NUDGES:
+        target_pos = supervisor.getFromDef("OBJ1").getPosition()
+        dist_to_target = math.dist((current_x, current_y), (target_pos[0], target_pos[1]))
+        
+        # If the arm gets within 10cm of the cube, teleport it away!
+        if dist_to_target < 0.10:
+            print(f" -> [Referee] Arm got close! Triggering Nudge {nudges_performed + 1}/{TARGET_NUDGES}...")
+            
+            # Log the accuracy of the VLA's tracking right before we teleport it again
+            if current_nudge_truth is not None:
+                error = math.dist((current_x, current_y), current_nudge_truth)
+                print(f" -> [Referee] VLA Tracked Nudge! Error: {error:.4f}m")
+                nudge_history.append({'truth': current_nudge_truth, 'pred': (current_x, current_y), 'error': error})
+            
+            current_nudge_truth = AUTOMATE_NUDGE(supervisor)
+            nudges_performed += 1
+            continue
+    # ------------------------------------
+
+    # --- PICK & DROP LOGIC ---
+    if gripper_state > 0.5:
+        robot.operate_gripper(close=True)
+        if not has_picked:
+            print(" -> [State] VLA initiated Pick!")
+            target_pos = supervisor.getFromDef("OBJ1").getPosition()
+            final_pick_error = math.dist((current_x, current_y), (target_pos[0], target_pos[1]))
+            
+            # Catch the final nudge tracking error right as it commits to grabbing
+            if current_nudge_truth is not None:
+                error = math.dist((current_x, current_y), current_nudge_truth)
+                print(f" -> [Referee] VLA Tracked Final Nudge! Error: {error:.4f}m")
+                nudge_history.append({'truth': current_nudge_truth, 'pred': (current_x, current_y), 'error': error})
+                current_nudge_truth = None
+
+            has_picked = True
+            
+    else:
+        robot.operate_gripper(close=False)
+        if has_picked:
+            print(" -> [State] VLA initiated Drop!")
+            predicted_drop = (current_x, current_y)
+            break 
+
+end_time = supervisor.getTime()
+
+LOG_NUDGE_METRICS(
+    supervisor=supervisor, 
+    architecture="VLA", 
+    start_time=start_time, 
+    end_time=end_time,
+    nudge_history=nudge_history, 
+    final_pick_error=final_pick_error, 
+    predicted_drop=predicted_drop
+)
+
+print("\n[System] Test Logged Successfully.")
+while supervisor.step(timestep) != -1: pass

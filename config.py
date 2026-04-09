@@ -55,7 +55,9 @@ VLA_USER_PROMPTS = {
 }
 
 # TESTING / DEBUGGING PARAMETERS
-NUDGE_TOLERANCE_NORM = 0.02 # Normalized distance threshold for nudge detection (approx 1.5cm to 2cm on table)
+TARGET_NUDGES = 1 # Number of nudges to perform during the Dynamic Nudge Tracking test
+NUDGE_RANGE = (0.10, 0.20) # Range (in meters) for random nudge shifts on the X and Y axes
+NUDGE_TOLERANCE_NORM = min(NUDGE_RANGE)
 
 def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False):
     last_packet = None
@@ -92,7 +94,6 @@ def PIXEL_TO_WORLD(px, py, _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y
 
     # Math Mapping
     cx, cy = CAM_WIDTH / 2.0, CAM_HEIGHT / 2.0
-    world_x = round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3)
-    world_y = round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3)
-    
+    world_x = float(round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3))
+    world_y = float(round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3))
     return world_x, world_y

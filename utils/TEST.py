@@ -8,7 +8,7 @@ import os
 import csv
 import math
 import random
-from config import SELECTED_VLM, VLM_PATHS, VLA_PATH
+from config import SELECTED_VLM, VLM_PATHS, VLA_PATH, TARGET_NUDGES, NUDGE_RANGE
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 RESULTS_DIR = os.path.join(ROOT_DIR, "results")
@@ -82,9 +82,8 @@ def AUTOMATE_NUDGE(supervisor, target_def="OBJ1"):
     node = supervisor.getFromDef(target_def)
     pos = node.getPosition()
     
-    # Generate a random shift between 5cm and 15cm on the X and Y axes
-    dx = random.uniform(0.05, 0.15) * random.choice([-1, 1])
-    dy = random.uniform(0.05, 0.15) * random.choice([-1, 1])
+    dx = random.uniform(*NUDGE_RANGE) * random.choice([-1, 1])
+    dy = random.uniform(*NUDGE_RANGE) * random.choice([-1, 1])
     
     new_x = round(pos[0] + dx, 3)
     new_y = round(pos[1] + dy, 3)
@@ -112,29 +111,37 @@ def LOG_NUDGE_METRICS(supervisor, architecture, start_time, end_time, nudge_hist
 
     real_bin_node = supervisor.getFromDef(bin_def)
     real_bin_pos = real_bin_node.getPosition()
+    
+    # --- NEW: Grab the target's final physical position ---
+    real_target_node = supervisor.getFromDef(target_def)
+    real_target_pos = real_target_node.getPosition()
+    # ------------------------------------------------------
+
     drop_error = round(math.dist(predicted_drop, (real_bin_pos[0], real_bin_pos[1])), 4) if predicted_drop else 999.0
     
+    # --- NEW: Calculate physical success metrics ---
+    final_distance_to_bin = round(math.dist((real_target_pos[0], real_target_pos[1]), (real_bin_pos[0], real_bin_pos[1])), 4)
+    success = bool(final_distance_to_bin < 0.15) 
+    # -----------------------------------------------
+
     if architecture == "VLM":
         model_id = VLM_PATHS[SELECTED_VLM]
     else:
         model_id = VLA_PATH
 
-    # Base headers
-    headers = ["Architecture", "Model_ID", "Task_Time_Sec", "Total_Nudges", "Final_Pick_Error_m", "Drop_Error_m"]
+    headers = ["Architecture", "Model_ID", "Task_Time_Sec", "Total_Nudges", "Final_Pick_Error_m", "Drop_Error_m", "Final_Distance_to_Bin_m", "Success"]
     
-    # Dynamic headers for up to 3 nudges
-    for i in range(1, 4):
+    for i in range(1, TARGET_NUDGES + 1):
         headers.extend([f"Nudge_{i}_Truth", f"Nudge_{i}_Pred", f"Nudge_{i}_Error_m"])
-
+    
     with open(csv_file, mode='a', newline='') as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(headers)
         
-        row = [architecture, model_id, task_time, num_nudges, round(final_pick_error, 4), drop_error]
+        row = [architecture, model_id, task_time, num_nudges, round(final_pick_error, 4), drop_error, final_distance_to_bin, success]
         
-        # Unpack the specific metrics for each perturbation
-        for i in range(3):
+        for i in range(TARGET_NUDGES):
             if i < len(nudge_history):
                 n = nudge_history[i]
                 row.extend([f"{n['truth']}", f"{n['pred']}", round(n['error'], 4)])

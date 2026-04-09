@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLM import ASK, SELECT_VLM
+from utils.TEST import AUTOMATE_NUDGE, LOG_NUDGE_METRICS
 
 from config import (
     OVERHEAD_CAM_DEF, 
@@ -22,7 +23,8 @@ from config import (
     GRIPPER_TARGET_HOVER_HEIGHT, 
     GRIPPER_LIFT_HEIGHT,
     PIXEL_TO_WORLD,
-    NUDGE_TOLERANCE_NORM
+    NUDGE_TOLERANCE_NORM,
+    TARGET_NUDGES
 )
 
 # Initialize Webots
@@ -46,39 +48,71 @@ _height = CAM_Z - TABLE_HEIGHT
 
 llm = SELECT_VLM()
 
-# --- MAIN REACTIVE LOOP ---
-task_state = "PICKING" #PICKING, DROPPING, DONE
+nudges_performed = 0
+nudge_history = []
+current_nudge_truth = None
+# ------------------------------------------
+
+start_time = supervisor.getTime()
+predicted_pick = None
+predicted_drop = None
+final_pick_error = 999.0
+
+task_state = "SENSING"
 prev_coords = None
 
-print("\n[Brain] Starting Reactive Nudge Test Controller...")
+retry_count = 0
+MAX_RETRIES = 5
+
+print("\n[Brain] Starting Automated VLM Nudge Test...")
 
 while task_state != "DONE" and supervisor.step(timestep) != -1:
-    img = GET_RECEIVER_BASE64_IMAGE(receiver)
-    if not img: continue
-
-    content = [
-        {"type": "text", "text": VLM_USER_PROMPTS["nudge"]},
-        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
-    ]
-
-    if task_state == "PICKING":
-        print(f"\n[Sense] Looking for Cube...")
+    
+    if task_state == "SENSING":
+        img = GET_RECEIVER_BASE64_IMAGE(receiver)
+        if not img: continue
+        
+        content = [
+            {"type": "text", "text": VLM_USER_PROMPTS["nudge_obj"]},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
+        ]
         
         data = ASK(llm, content)
         
         if data.get("found") is False or "x" not in data or "y" not in data:
-            print(" -> Cube not found or coordinates missing. Retrying...")
+            retry_count += 1
+            print(f" -> Target not found or API error. Retrying... ({retry_count}/{MAX_RETRIES})")
+            if retry_count >= MAX_RETRIES:
+                print("\n[Fatal] Max retries reached! The target is occluded. Aborting.")
+                break
+                
+            # Wait 2 seconds before hitting the API again
+            for _ in range(int(2000 / timestep)): supervisor.step(timestep)
             continue
-
+            
+        retry_count = 0 
+        
         curr_coords = (data['x'], data['y'])
         wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
-        
+
+        # Log tracking error if we are recovering from a nudge
+        if current_nudge_truth is not None:
+            error = math.dist((wx, wy), current_nudge_truth)
+            print(f" -> [Referee] VLM Re-planned! Tracking Error: {error:.4f}m")
+            nudge_history.append({'truth': current_nudge_truth, 'pred': (wx, wy), 'error': error})
+            current_nudge_truth = None
+
         if prev_coords is None:
-            print(f" -> Cube sensed at norm {curr_coords}. Moving to Hover...")
-            robot.operate_gripper(close=False)
+            print(" -> Initial target acquired. Moving to hover...")
+            prev_coords = curr_coords
             robot.move_to_world_target([wx, wy, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
             
-            prev_coords = curr_coords
+            # Programmatic Nudge Trigger
+            if nudges_performed < TARGET_NUDGES:
+                print(f" -> [Referee] Triggering Nudge {nudges_performed + 1}/{TARGET_NUDGES}...")
+                current_nudge_truth = AUTOMATE_NUDGE(supervisor)
+                nudges_performed += 1
+                prev_coords = None
             continue 
             
         else:
@@ -86,11 +120,17 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             if dist > NUDGE_TOLERANCE_NORM:
                 print(f" -> [!] NUDGE DETECTED (Moved {dist:.3f}). Re-tracking...")
                 prev_coords = None 
+
+                # Wait 2 seconds before snapping the next photo
+                for _ in range(int(2000 / timestep)): supervisor.step(timestep)
                 continue
             else:
                 print(" -> Target verified stable. Executing Grab...")
+                predicted_pick = (wx, wy)
+                final_truth_pos = supervisor.getFromDef("OBJ1").getPosition()
+                final_pick_error = math.dist((wx, wy), (final_truth_pos[0], final_truth_pos[1]))
+                
                 robot.move_to_world_target([wx, wy, TABLE_HEIGHT + GRIPPER_TARGET_HOVER_HEIGHT])
-
                 robot.operate_gripper(close=True)
                 robot.move_to_world_target([wx, wy, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
                 
@@ -98,20 +138,54 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
                 prev_coords = None 
 
     elif task_state == "DROPPING":
-        print(f"\n[Sense] Looking for Bin...")
+        img = GET_RECEIVER_BASE64_IMAGE(receiver)
+        if not img: continue
+        
+        content = [
+            {"type": "text", "text": VLM_USER_PROMPTS["nudge_bin"]}, 
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
+        ]
         
         data = ASK(llm, content)
         
         if data.get("found") is False or "x" not in data or "y" not in data:
-            print(" -> Bin not found or coordinates missing. Retrying...")
+            retry_count += 1
+            print(f" -> Bin not found or API error. Retrying... ({retry_count}/{MAX_RETRIES})")
+            if retry_count >= MAX_RETRIES:
+                break
+            
+            # Wait 2 seconds before hitting the API again
+            for _ in range(int(2000 / timestep)): supervisor.step(timestep)
             continue
+            
+        retry_count = 0
 
         curr_coords = (data['x'], data['y'])
         wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
         
-        print(f" -> Bin sensed at {curr_coords}. Moving to Drop Zone...")
+        print(f" -> Bin sensed at {wx:.3f}, {wy:.3f}. Executing Drop...")
+        predicted_drop = (wx, wy)
+        
         robot.move_to_world_target([wx, wy, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)
 
-print("\n[System] Task Complete.")
+        task_state = "DONE"
+
+end_time = supervisor.getTime()
+
+if predicted_pick is not None:
+    LOG_NUDGE_METRICS(
+        supervisor=supervisor,
+        architecture="VLM",
+        start_time=start_time,
+        end_time=end_time,
+        nudge_history=nudge_history,
+        final_pick_error=final_pick_error,
+        predicted_drop=predicted_drop
+    )
+    print("\n[System] Sequence Complete! Data Logged.")
+else:
+    print("\n[System] Sequence aborted early. No data logged.")
+
+print("[System] Entering Idle Mode.")
 while supervisor.step(timestep) != -1: pass
