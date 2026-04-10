@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from controller import Supervisor
 from utils.UR import UR10e_Robot
-from utils.VLM import ASK, SELECT_VLM
+from utils.VLM import ASK
 from utils.TEST import LOG_BASELINE
 
 from config import (
@@ -46,8 +46,6 @@ _height = CAM_Z - TABLE_HEIGHT
 
 print("\n[Brain] Initializing Single-Pass VLM Test")
 
-llm = SELECT_VLM()
-
 # Boot-up pause
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 
@@ -65,7 +63,7 @@ if img is not None:
     try:
         print("\n[Vision] Snapping baseline picture and asking VLM...")
 
-        args = ASK(llm, content)
+        args = ASK(content)
         print(f" -> [Brain] Output: {args}")
 
         pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)

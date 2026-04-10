@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from controller import Supervisor
 from utils.UR import UR10e_Robot
-from utils.VLM import ASK, SELECT_VLM
+from utils.VLM import ASK
 from utils.TEST import LOG_OOD
 
 from config import (
@@ -35,8 +35,6 @@ _height = CAM_Z - TABLE_HEIGHT
 
 print("\n[Brain] Initializing OOD Single-Pass VLM Test")
 
-llm = SELECT_VLM()
-
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 
 start_time = supervisor.getTime()
@@ -52,7 +50,7 @@ if img is not None:
 
     try:
         print("\n[Vision] Snapping OOD picture and asking VLM...")
-        args = ASK(llm, content)
+        args = ASK(content)
         print(f" -> [Brain] Output: {args}")
 
         # Safety Check for the NEW JSON keys

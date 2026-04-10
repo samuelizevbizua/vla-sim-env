@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from controller import Supervisor
 from utils.UR import UR10e_Robot
-from utils.VLM import ASK, SELECT_VLM
+from utils.VLM import ASK
 from utils.TEST import AUTOMATE_NUDGE, LOG_NUDGE_METRICS
 
 from config import (
@@ -46,8 +46,6 @@ CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
 TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
 _height = CAM_Z - TABLE_HEIGHT
 
-llm = SELECT_VLM()
-
 nudges_performed = 0
 nudge_history = []
 current_nudge_truth = None
@@ -77,7 +75,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
         ]
         
-        data = ASK(llm, content)
+        data = ASK(content)
         
         if data.get("found") is False or "x" not in data or "y" not in data:
             retry_count += 1
@@ -146,7 +144,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
         ]
         
-        data = ASK(llm, content)
+        data = ASK(content)
         
         if data.get("found") is False or "x" not in data or "y" not in data:
             retry_count += 1

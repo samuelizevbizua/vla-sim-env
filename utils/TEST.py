@@ -8,7 +8,7 @@ import os
 import csv
 import math
 import random
-from config import SELECTED_VLM, VLM_PATHS, VLA_PATH, TARGET_NUDGES, NUDGE_RANGE
+from config import VLM_PATH, VLA_PATH, TARGET_NUDGES, NUDGE_RANGE
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 RESULTS_DIR = os.path.join(ROOT_DIR, "results")
@@ -44,10 +44,7 @@ def _EVALUATE_AND_LOG(csv_filename, supervisor, architecture, start_time, end_ti
     success = bool(final_distance_to_bin < 0.15) # Assuming bin radius is 15cm
 
     # 4. Identify Model
-    if architecture == "VLM":
-        model_id = VLM_PATHS[SELECTED_VLM]['path']
-    else:
-        model_id = VLA_PATH
+    model_id = VLM_PATH if architecture == "VLM" else VLA_PATH
 
     # Write to CSV
     headers = ["Architecture", "Model_ID", "Task_Time_Sec", "Pick_Error_m", "Drop_Error_m", "Final_Distance_to_Bin_m", "Success"]
@@ -124,10 +121,7 @@ def LOG_NUDGE_METRICS(supervisor, architecture, start_time, end_time, nudge_hist
     success = bool(final_distance_to_bin < 0.15) 
     # -----------------------------------------------
 
-    if architecture == "VLM":
-        model_id = VLM_PATHS[SELECTED_VLM]['path']
-    else:
-        model_id = VLA_PATH
+    model_id = VLM_PATH if architecture == "VLM" else VLA_PATH
 
     headers = ["Architecture", "Model_ID", "Task_Time_Sec", "Total_Nudges", "Final_Pick_Error_m", "Drop_Error_m", "Final_Distance_to_Bin_m", "Success"]
     

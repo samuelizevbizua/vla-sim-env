@@ -28,14 +28,9 @@ GRIPPER_TARGET_ANGLE_CLOSED = 0.85
 # -- HUGGING FACE AND PROMPT CONFIG ---
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 HF_BASE_URL = os.getenv("HF_BASE_URL")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # VLM CONFIG
-VLM_PATHS = {
-    1: {"path": "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"},
-    2: {"path": "gemini-2.5-flash"},
-}
-SELECTED_VLM = 1
+VLM_PATH = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
 VLM_USER_PROMPTS = {
     "baseline": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
     "nudge_obj": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",

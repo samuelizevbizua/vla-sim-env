@@ -1,8 +1,7 @@
 import json
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from config import (HF_API_TOKEN, HF_BASE_URL, GOOGLE_API_KEY, SELECTED_VLM, VLM_PATHS)
+from config import HF_API_TOKEN, HF_BASE_URL, VLM_PATH
 
 MODEL_CONFIG = {
     "temperature": 0.0,
@@ -17,27 +16,18 @@ VLM_SYSTEM_PROMPT = (
     "You MUST output ONLY a valid JSON object with NO markdown formatting and NO conversational text."
 )
 
-def SELECT_VLM():
-    if SELECTED_VLM == 1:
-        return ChatOpenAI(
-            model=VLM_PATHS[SELECTED_VLM]["path"],
-            api_key=HF_API_TOKEN,
-            base_url=HF_BASE_URL,
-            temperature=MODEL_CONFIG["temperature"],
-            max_tokens=MODEL_CONFIG["max_tokens"],
-            max_retries=MODEL_CONFIG["max_retries"],
-        )
-    else:
-        return ChatGoogleGenerativeAI(
-            model=VLM_PATHS[SELECTED_VLM]["path"],
-            api_key=GOOGLE_API_KEY,
-            temperature=MODEL_CONFIG["temperature"],
-            max_retries=MODEL_CONFIG["max_retries"],
-        )  
+LLM = ChatOpenAI(
+    model=VLM_PATH,
+    api_key=HF_API_TOKEN,
+    base_url=HF_BASE_URL,
+    temperature=MODEL_CONFIG["temperature"],
+    max_tokens=MODEL_CONFIG["max_tokens"],
+    max_retries=MODEL_CONFIG["max_retries"],
+)
 
-def ASK(llm, prompt_content):
+def ASK(prompt_content):
     try:
-        response = llm.invoke([
+        response = LLM.invoke([
             SystemMessage(content=VLM_SYSTEM_PROMPT), 
             HumanMessage(content=prompt_content)
         ])
