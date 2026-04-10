@@ -45,7 +45,7 @@ def _EVALUATE_AND_LOG(csv_filename, supervisor, architecture, start_time, end_ti
 
     # 4. Identify Model
     if architecture == "VLM":
-        model_id = VLM_PATHS[SELECTED_VLM]
+        model_id = VLM_PATHS[SELECTED_VLM]['path']
     else:
         model_id = VLA_PATH
 
@@ -125,7 +125,7 @@ def LOG_NUDGE_METRICS(supervisor, architecture, start_time, end_time, nudge_hist
     # -----------------------------------------------
 
     if architecture == "VLM":
-        model_id = VLM_PATHS[SELECTED_VLM]
+        model_id = VLM_PATHS[SELECTED_VLM]['path']
     else:
         model_id = VLA_PATH
 

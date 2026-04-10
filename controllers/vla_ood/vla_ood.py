@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLA import ACTION
+from utils.TEST import LOG_OOD
 
 from config import (
     PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
@@ -41,10 +42,24 @@ for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 print("\n[Brain] VLA OOD Loop starting...")
 print(" -> [Target] Jam Jar\n")
 
+# --- NEW: Referee Tracking Variables ---
+start_time = supervisor.getTime()
+initial_target_pos = supervisor.getFromDef("OBJ2").getPosition()
+predicted_pick = None
+predicted_drop = None
+has_picked = False
+MAX_TRIAL_TIME_SEC = 120.0
+# ---------------------------------------
+
 step_counter = 0
 
 while supervisor.step(timestep) != -1:
     step_counter += 1
+    current_time = supervisor.getTime()
+
+    if (current_time - start_time) > MAX_TRIAL_TIME_SEC:
+        print("\n[Referee] Trial timed out!")
+        break
 
     if step_counter % INFERENCE_EVERY_N != 0: continue
 
@@ -64,4 +79,39 @@ while supervisor.step(timestep) != -1:
     current_z += dz * DELTA_SCALE
 
     robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
-    robot.operate_gripper(close=(gripper_state > 0.5))
+
+    # --- NEW: State Machine to Track Pick/Drop for the Logger ---
+    if gripper_state > 0.5:
+        robot.operate_gripper(close=True)
+        if not has_picked:
+            print(" -> [State] VLA initiated Pick!")
+            predicted_pick = (current_x, current_y)
+            has_picked = True
+    else:
+        robot.operate_gripper(close=False)
+        if has_picked:
+            print(" -> [State] VLA initiated Drop! Ending sequence.")
+            predicted_drop = (current_x, current_y)
+            break
+    # ------------------------------------------------------------
+
+end_time = supervisor.getTime()
+
+# Fallbacks in case it times out before tracking a coordinate
+if predicted_pick is None: predicted_pick = (current_x, current_y)
+if predicted_drop is None: predicted_drop = (current_x, current_y)
+
+LOG_OOD(
+    supervisor=supervisor,
+    architecture="VLA",
+    start_time=start_time,
+    end_time=end_time,
+    predicted_pick=predicted_pick,
+    predicted_drop=predicted_drop,
+    initial_target_pos=initial_target_pos,
+    target_def="OBJ2",
+    bin_def="BIN"
+)
+
+print("\n[System] Entering Terminal Idle State.")
+while supervisor.step(timestep) != -1: pass

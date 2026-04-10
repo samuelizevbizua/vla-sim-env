@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLM import ASK, SELECT_VLM
+from utils.TEST import LOG_OOD
 
 from config import (
     OVERHEAD_CAM_DEF, OVERHEAD_RECEIVER, SIM_TABLE_DEF, GET_RECEIVER_BASE64_IMAGE,
@@ -37,6 +38,9 @@ print("\n[Brain] Initializing OOD Single-Pass VLM Test")
 llm = SELECT_VLM()
 
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
+
+start_time = supervisor.getTime()
+initial_target_pos = supervisor.getFromDef("OBJ2").getPosition()
 
 img = GET_RECEIVER_BASE64_IMAGE(receiver)
 
@@ -71,6 +75,14 @@ if img is not None:
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
         robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)
+
+        end_time = supervisor.getTime()
+        
+        LOG_OOD(
+            supervisor=supervisor, architecture="VLM", start_time=start_time, end_time=end_time,
+            predicted_pick=(pick_x, pick_y), predicted_drop=(drop_x, drop_y),
+            initial_target_pos=initial_target_pos, target_def="OBJ2", bin_def="BIN"
+        )
 
         print("\n[System] OOD Sequence Complete!")
 
