@@ -40,7 +40,6 @@ robot.operate_gripper(close=False)
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 
 print("\n[Brain] VLA OOD Loop starting...")
-print(" -> [Target] Jam Jar\n")
 
 # --- NEW: Referee Tracking Variables ---
 start_time = supervisor.getTime()

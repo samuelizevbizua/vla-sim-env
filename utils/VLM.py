@@ -33,8 +33,6 @@ def ASK(prompt_content):
         ])
         
         raw = response.content.strip()
-
-        print(f"\n[LLM] Raw Response: {raw}")
         
         # Robust parsing (ignores conversational text)
         start_idx = raw.find('{')

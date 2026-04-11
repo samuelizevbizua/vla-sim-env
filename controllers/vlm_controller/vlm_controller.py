@@ -64,7 +64,6 @@ if img is not None:
         print("\n[Vision] Snapping baseline picture and asking VLM...")
 
         args = ASK(content)
-        print(f" -> [Brain] Output: {args}")
 
         pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
         drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)

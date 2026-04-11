@@ -51,7 +51,6 @@ if img is not None:
     try:
         print("\n[Vision] Snapping OOD picture and asking VLM...")
         args = ASK(content)
-        print(f" -> [Brain] Output: {args}")
 
         # Safety Check for the NEW JSON keys
         if args.get("found") is False or "target_x_norm" not in args:
