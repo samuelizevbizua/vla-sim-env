@@ -10,6 +10,9 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq3fGripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR10e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/breakfast/protos/JamJar.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Hammer.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/balls/protos/Ball.proto"
 
 WorldInfo {
   info [
@@ -19,8 +22,8 @@ WorldInfo {
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.3223762469220337 -0.3451290904347177 0.8814530426268709 4.650358926971795
-  position -0.08282533759040586 3.4231205030506935 3.3053033748813774
+  orientation -0.15307146579656195 -0.15819306369746722 0.9754712097017015 4.711899525494543
+  position 0.7786246235729993 3.9647242102244737 1.893404501715767
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -72,7 +75,7 @@ DEF BIN PlasticCrate {
   color 1 1 0
 }
 DEF OBJ1 Solid {
-  translation 0.31 0.62 0.710935
+  translation 0.0199998 0.85 0.7
   rotation 8.64965e-12 -3.7629e-13 1 4.07987e-06
   children [
     Shape {
@@ -93,6 +96,18 @@ DEF OBJ1 Solid {
 }
 DEF OBJ2 JamJar {
   translation 0.31 1.08 0.68
+}
+Ball {
+  translation 0.59 0.94 0.7
+  radius 0.05
+}
+Hammer {
+  translation 0.426065 0.598787 0.71
+  rotation 0 0 1 -0.785395307179586
+}
+Wrench {
+  translation -0.0433014 1.155 0.71
+  rotation 0 0 1 1.0472
 }
 Robot {
   translation 0 0.84 2.7
