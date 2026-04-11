@@ -75,13 +75,11 @@ def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False):
         return base64_img
     return None
 
-def RESIZE_IMAGE(base64_img):
-    img_bytes = base64.b64decode(base64_img)
-    image     = Image.open(BytesIO(img_bytes)).convert("RGB")
-    image     = image.resize((224, 224), Image.LANCZOS)
-    return image
+def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):
+    # Assuming the cube is 6cm tall
+    CUBE_HEIGHT = 0.06
+    _height = CAM_Z - (TABLE_HEIGHT + CUBE_HEIGHT)
 
-def PIXEL_TO_WORLD(px, py, _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y):
     _ground_w = 2.0 * _height * np.tan(CAM_FOV / 2.0)
     _ground_h = _ground_w * (CAM_HEIGHT / CAM_WIDTH)
     MPP_X =  _ground_w / CAM_WIDTH
@@ -91,4 +89,6 @@ def PIXEL_TO_WORLD(px, py, _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y
     cx, cy = CAM_WIDTH / 2.0, CAM_HEIGHT / 2.0
     world_x = float(round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3))
     world_y = float(round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3))
+
+    print(f"Pixel to world: ({world_x:.3f}, {world_y:.3f})")
     return world_x, world_y

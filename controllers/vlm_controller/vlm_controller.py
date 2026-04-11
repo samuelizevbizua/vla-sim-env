@@ -40,9 +40,7 @@ CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
 
 cam_rig = cam_node.getParentNode()
 CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
-
 TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
-_height = CAM_Z - TABLE_HEIGHT
 
 print("\n[Brain] Initializing Single-Pass VLM Test")
 
@@ -65,8 +63,8 @@ if img is not None:
 
         args = ASK(content)
 
-        pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
-        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
+        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
 
         print(f"\n[Muscle] Executing Blind Pick-and-Place sequence...")
         

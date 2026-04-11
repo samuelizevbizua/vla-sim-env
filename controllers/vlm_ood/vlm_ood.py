@@ -29,9 +29,7 @@ cam_node = supervisor.getFromDef(OVERHEAD_CAM_DEF)
 CAM_WIDTH, CAM_HEIGHT = cam_node.getField("width").getSFInt32(), cam_node.getField("height").getSFInt32()
 CAM_X, CAM_Y, CAM_Z = cam_node.getParentNode().getPosition()
 CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
-
 TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
-_height = CAM_Z - TABLE_HEIGHT
 
 print("\n[Brain] Initializing OOD Single-Pass VLM Test")
 
@@ -58,8 +56,8 @@ if img is not None:
             raise ValueError("Incomplete JSON.")
 
         # Using target_x_norm instead of cube_x_norm
-        pick_x, pick_y = PIXEL_TO_WORLD(args['target_x_norm'], args['target_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
-        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        pick_x, pick_y = PIXEL_TO_WORLD(args['target_x_norm'], args['target_y_norm'], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
+        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
 
         print(f"\n[Muscle] Executing OOD Pick-and-Place sequence...")
         

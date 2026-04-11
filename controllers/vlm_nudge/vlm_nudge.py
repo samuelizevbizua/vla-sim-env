@@ -42,9 +42,7 @@ CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
 
 cam_rig = cam_node.getParentNode()
 CAM_X, CAM_Y, CAM_Z = cam_rig.getPosition()
-
 TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
-_height = CAM_Z - TABLE_HEIGHT
 
 nudges_performed = 0
 nudge_history = []
@@ -91,7 +89,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
         retry_count = 0 
         
         curr_coords = (data['x'], data['y'])
-        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
 
         # Log tracking error if we are recovering from a nudge
         if current_nudge_truth is not None:
@@ -159,7 +157,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
         retry_count = 0
 
         curr_coords = (data['x'], data['y'])
-        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], _height, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y)
+        wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
         
         print(f" -> Bin sensed at {wx:.3f}, {wy:.3f}. Executing Drop...")
         predicted_drop = (wx, wy)
