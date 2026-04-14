@@ -15,8 +15,7 @@ from utils.TEST import AUTOMATE_NUDGE, LOG_NUDGE_METRICS
 
 from config import (
     PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
-    GET_RECEIVER_BASE64_IMAGE, DELTA_SCALE, INFERENCE_EVERY_N,
-    TARGET_NUDGES
+    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N, TARGET_NUDGES
 )
 
 supervisor = Supervisor()
@@ -65,10 +64,25 @@ while supervisor.step(timestep) != -1:
     action = ACTION(img, VLA_USER_PROMPTS["nudge"])
     if action is None: continue 
 
-    current_x += action[0] * DELTA_SCALE
-    current_y += action[1] * DELTA_SCALE
-    current_z += action[2] * DELTA_SCALE
-    gripper_state = action[6]
+    dx, dy, dz, gripper_state = action[0], action[1], action[2], action[-1]
+    print(f"[VLA] Raw Target -> X={dx:+.4f} | Y={dy:+.4f} | Z={dz:+.4f} | grip={gripper_state:.2f}")
+
+    # ---------------------------------------------------------
+    # CALIBRATION OFFSETS (Sim-to-AI Translation)
+    # ---------------------------------------------------------
+    # AI_ORIGIN is where the AI "thinks" its 0,0,0 coordinate is in Webots.
+    # You will likely need to tweak these numbers slightly!
+    AI_ORIGIN_X = float(table_pos[0])
+    AI_ORIGIN_Y = float(table_pos[1])
+    
+    # If dz is around -0.45 when it should be touching the table,
+    # then the AI's origin is about 45cm ABOVE the table.
+    AI_ORIGIN_Z = TABLE_HEIGHT + 0.45 
+
+    # Translate local AI target to global Webots target
+    current_x = AI_ORIGIN_X + dx
+    current_y = AI_ORIGIN_Y + dy
+    current_z = AI_ORIGIN_Z + dz
 
     robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
     

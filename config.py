@@ -1,8 +1,6 @@
 import os, base64
 import cv2
 import numpy as np
-from io import BytesIO
-from PIL import Image
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -32,21 +30,20 @@ HF_BASE_URL = os.getenv("HF_BASE_URL")
 # VLM CONFIG
 VLM_PATH = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
 VLM_USER_PROMPTS = {
-    "baseline": "Identify ONE blue cube and the YELLOW sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "baseline": "Identify ONE blue cube and the green sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
     "nudge_obj": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge_bin": "Identify the YELLOW bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "ood_test": "Identify the jam jar and the YELLOW sorting bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
+    "nudge_bin": "Identify the green bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "ood_test": "Identify the jam jar and the green sorting bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
 # VLA CONFIG
-VLA_PATH = "openvla/openvla-7b"
+VLA_PATH = "lerobot/smolvla_base"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
-DELTA_SCALE = 0.5 # How many physics steps to wait between taking pictures (simulates real-world Hz)
 INFERENCE_EVERY_N = 5 
 VLA_USER_PROMPTS = {
-    "baseline": "pick up the blue cube and put it in the yellow bin",
-    "nudge": "pick up the blue cube and put it in the yellow bin",
-    "ood": "pick up the jam jar and put it in the yellow bin"
+    "baseline": "pick up the blue cube and put it in the green bin",
+    "nudge": "pick up the blue cube and put it in the green bin",
+    "ood": "pick up the jam jar and put it in the green bin"
 }
 
 # TESTING / DEBUGGING PARAMETERS
@@ -76,8 +73,7 @@ def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False):
     return None
 
 def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):
-    # Assuming the cube is 6cm tall
-    CUBE_HEIGHT = 0.06
+    CUBE_HEIGHT = 0
     _height = CAM_Z - (TABLE_HEIGHT + CUBE_HEIGHT)
 
     _ground_w = 2.0 * _height * np.tan(CAM_FOV / 2.0)
@@ -90,5 +86,4 @@ def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, 
     world_x = float(round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3))
     world_y = float(round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3))
 
-    print(f"Pixel to world: ({world_x:.3f}, {world_y:.3f})")
     return world_x, world_y

@@ -1,6 +1,6 @@
 """
 VLA Continuous Baseline Controller
-Uses OpenVLA via a cloud server to continuously predict delta movements.
+Uses VLA model via a server endpoint to continuously predict delta movements.
 Includes automated state-tracking for Baseline Logging.
 """
 
@@ -11,11 +11,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import UR10e_Robot
 from utils.VLA import ACTION
-from utils.TEST import LOG_BASELINE 
+# from utils.TEST import LOG_BASELINE 
 
 from config import (
     PERSPECTIVE_RECEIVER, SIM_TABLE_DEF,
-    GET_RECEIVER_BASE64_IMAGE, DELTA_SCALE, INFERENCE_EVERY_N, VLA_USER_PROMPTS
+    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N, VLA_USER_PROMPTS
 )
 
 supervisor = Supervisor()
@@ -37,79 +37,70 @@ print("[System] Moving to start pose...")
 robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
-for _ in range(int(1000 / timestep)): supervisor.step(timestep)
-
-print("\n[Brain] VLA Continuous Loop starting...\n")
-
-# --- REFEREE TRACKING VARIABLES ---
-start_time = supervisor.getTime()
-initial_cube_pos = supervisor.getFromDef("OBJ1").getPosition()
-
-predicted_pick = (current_x, current_y) 
-predicted_drop = (current_x, current_y)
-
+# Tracking for baseline
 has_picked = False
-MAX_TRIAL_TIME_SEC = 120.0  
-# ----------------------------------
-
 step_counter = 0
+
+print("[Brain] VLA Continuous Loop starting...")
 
 while supervisor.step(timestep) != -1:
     step_counter += 1
-    current_time = supervisor.getTime()
-
-    if (current_time - start_time) > MAX_TRIAL_TIME_SEC:
-        print("\n[Referee] Trial timed out! VLA failed to complete the task.")
-        break
-
     if step_counter % INFERENCE_EVERY_N != 0: continue
 
     img = GET_RECEIVER_BASE64_IMAGE(receiver)
     if not img: continue
 
+    # Call the VLA Brain
     action = ACTION(img, VLA_USER_PROMPTS["baseline"])
-    if action is None: continue 
+    
+    if action is None:
+        print("[System] Waiting for Brain...")
+        continue 
 
-    dx, dy, dz = action[0], action[1], action[2]
-    gripper_state = action[6]
+    # --- THE FIX: Print the raw output and safely extract ---
+    print("-" * 40)
+    print(f"[Debug] Brain Output Array ({len(action)} dimensions):")
+    print([round(a, 4) for a in action])
+    
+    dx, dy, dz, gripper_state = action[0], action[1], action[2], action[-1]
 
-    print(f"[VLA] dx={dx:+.4f} | dy={dy:+.4f} | dz={dz:+.4f} | grip={gripper_state:.2f}")
+    print(f"[VLA] Raw Target -> X={dx:+.4f} | Y={dy:+.4f} | Z={dz:+.4f} | grip={gripper_state:.2f}")
 
-    current_x += dx * DELTA_SCALE
-    current_y += dy * DELTA_SCALE
-    current_z += dz * DELTA_SCALE
+    # ---------------------------------------------------------
+    # CALIBRATION OFFSETS (Sim-to-AI Translation)
+    # ---------------------------------------------------------
+    # AI_ORIGIN is where the AI "thinks" its 0,0,0 coordinate is in Webots.
+    # You will likely need to tweak these numbers slightly!
+    AI_ORIGIN_X = float(table_pos[0])
+    AI_ORIGIN_Y = float(table_pos[1])
+    
+    # If dz is around -0.45 when it should be touching the table,
+    # then the AI's origin is about 45cm ABOVE the table.
+    AI_ORIGIN_Z = TABLE_HEIGHT + 0.45 
 
-    # Command the robot
-    robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
+    # Translate local AI target to global Webots target
+    target_x = AI_ORIGIN_X + dx
+    target_y = AI_ORIGIN_Y + dy
+    target_z = AI_ORIGIN_Z + dz
+
+    # Command the physical body
+    robot.move_to_world_target([target_x, target_y, target_z], settle_time_ms=0)
     
     # --- REFEREE STATE MACHINE ---
     if gripper_state > 0.5:
         robot.operate_gripper(close=True)
         if not has_picked:
             print(" -> [State] VLA initiated Pick!")
-            predicted_pick = (current_x, current_y)
             has_picked = True
     else:
         robot.operate_gripper(close=False)
         if has_picked:
             print(" -> [State] VLA initiated Drop! Ending sequence.")
-            predicted_drop = (current_x, current_y)
             break 
-    # -----------------------------
 
-end_time = supervisor.getTime()
-
-LOG_BASELINE(
-    supervisor=supervisor,
-    architecture="VLA",
-    start_time=start_time,
-    end_time=end_time,
-    predicted_pick=predicted_pick,
-    predicted_drop=predicted_drop,
-    initial_target_pos=initial_cube_pos,
-    target_def="OBJ1",
-    bin_def="BIN"
-)
-
-print("\n[System] Entering Terminal Idle State.")
-while supervisor.step(timestep) != -1: pass
+# Final Baseline Log
+# LOG_BASELINE(
+#     supervisor=supervisor,
+#     architecture="VLA",
+#     task="Pick and Place"
+# )

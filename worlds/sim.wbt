@@ -22,19 +22,19 @@ WorldInfo {
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.16763791900630323 -0.7650555507424505 0.6217616363120211 5.597764782688663
-  position -2.1281086942665506 2.25417543645388 2.5745711581659374
+  orientation 0.21366361344690385 -0.5206201599692049 -0.82662114013764 5.367729612131237
+  position -1.9227784631845544 -1.8812915361877571 2.9166194012765088
   ambientOcclusionRadius 1
 }
 TexturedBackground {
-  texture "factory"
-  skybox FALSE
+  texture "empty_office"
+  luminosity 1.7
 }
 DirectionalLight {
   intensity 0.5
 }
 Floor {
-  size 6 6
+  size 20 20
   tileSize 2 2
   appearance BakelitePlastic {
     color "braun"
@@ -48,7 +48,7 @@ DEF SIM_TABLE Table {
   trayAppearance Parquetry {
     type "light strip"
     colorOverride 0.8 0.760784 0.619608
-    IBLStrength 1.5
+    IBLStrength 2.5
   }
   legAppearance BrushedAluminium {
     colorOverride 0.333 0.341 0.325
@@ -72,11 +72,11 @@ DEF BIN PlasticCrate {
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
   size 0.3 0.3 0.1
-  color 1 1 0
+  color 0 0.8 0
 }
 DEF OBJ1 Solid {
-  translation 0.0199998 0.85 0.7
-  rotation 8.64965e-12 -3.7629e-13 1 4.07987e-06
+  translation 0.0691188 0.589573 0.709778
+  rotation -7.507803965430302e-17 -5.745352874314297e-17 -1 0.523595307179586
   children [
     Shape {
       appearance PBRAppearance {
@@ -95,19 +95,20 @@ DEF OBJ1 Solid {
   }
 }
 DEF OBJ2 JamJar {
-  translation 0.31 1.08 0.68
+  translation 0.31 1.08 0.6794068382540284
+  rotation -0.43892556620610534 0.7900660191709907 0.4279486332282805 1.2581524736266311e-17
 }
 Ball {
-  translation 0.59 0.94 0.7
+  translation 0.59 0.94 0.7294175061097304
   radius 0.05
 }
 Hammer {
-  translation 0.426065 0.598787 0.71
-  rotation 0 0 1 -0.785395307179586
+  translation 0.4271982279090717 0.5993019868666182 0.6922437855519347
+  rotation -0.01907154135286642 -0.0007863212029859001 -0.9998178124085367 0.7771729524424702
 }
 Wrench {
-  translation -0.0433014 1.155 0.71
-  rotation 0 0 1 1.0472
+  translation 0.5433731148664976 1.1511400795272524 0.6786319863859382
+  rotation -3.9892889194677e-05 2.9237509630477804e-05 0.9999999987768627 1.047199985732257
 }
 Robot {
   translation 0 0.84 2.7
@@ -128,19 +129,19 @@ Robot {
   controller "camera_controller"
 }
 Robot {
-  translation 0.02 2.2 1.6
-  rotation 0 1 0 0
+  translation -0.2 0 1.5
   children [
     Emitter {
       name "perspective_emitter"
       channel 2
     }
     DEF PERSPECTIVE_CAMERA Camera {
-      rotation -0.20828796862017018 -0.20828796862017018 0.955631856028338 -1.6161653071795863
+      rotation -0.38374886981053175 0.46415684253156875 0.7983077291685606 1.5229803061004252
       name "perspective_camera"
       fieldOfView 1
       width 640
       height 450
+      near 1
     }
   ]
   name "perspective_camera_rig"
@@ -148,7 +149,7 @@ Robot {
 }
 UR10e {
   translation 0 0 0.7
-  controller "ik_controller"
+  controller "vla_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
