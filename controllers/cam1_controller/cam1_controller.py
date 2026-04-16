@@ -5,16 +5,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Robot
 import cv2
 import numpy as np
-from config import  PERSPECTIVE_EMITTER, PERSPECTIVE_CAM_NAME
+from config import CAM1_EMITTER, CAM1_NAME
 
 robot = Robot()
 timestep = int(robot.getBasicTimeStep())
 
-camera = robot.getDevice(PERSPECTIVE_CAM_NAME)
+camera = robot.getDevice(CAM1_NAME)
 camera.enable(timestep)
 
 # initialize emitter
-emitter = robot.getDevice(PERSPECTIVE_EMITTER)
+emitter = robot.getDevice(CAM1_EMITTER)
 
 print(f"[Camera] Emitter initialized with channel: {emitter.getChannel()}")
 

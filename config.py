@@ -5,14 +5,14 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # world parameters
-OVERHEAD_CAM_NAME, OVERHEAD_CAM_DEF= "overhead_camera", "OVERHEAD_CAMERA" # overhead camera node
-PERSPECTIVE_CAM_NAME, PERSPECTIVE_CAM_DEF = "perspective_camera", "PERSPECTIVE_CAMERA" # angled camera node
+CAM1_NAME, CAM1_DEF= "cam1", "CAM1" # overhead camera node
+CAM2_NAME, CAM2_DEF = "cam2", "CAM2" # angled side camera node
 
-OVERHEAD_EMITTER = "overhead_emitter"
-OVERHEAD_RECEIVER = "overhead_receiver"
+CAM1_EMITTER = "cam1_emitter"
+CAM1_RECEIVER = "cam1_receiver"
 
-PERSPECTIVE_EMITTER = "perspective_emitter"
-PERSPECTIVE_RECEIVER = "perspective_receiver"
+CAM2_EMITTER = "cam2_emitter"
+CAM2_RECEIVER = "cam2_receiver"
 
 SIM_TABLE_DEF = "SIM_TABLE"
 

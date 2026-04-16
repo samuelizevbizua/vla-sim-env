@@ -15,8 +15,8 @@ from utils.VLM import ASK
 from utils.TEST import AUTOMATE_NUDGE, LOG_NUDGE_METRICS
 
 from config import (
-    OVERHEAD_CAM_DEF, 
-    OVERHEAD_RECEIVER, 
+    CAM1_DEF, 
+    CAM1_RECEIVER, 
     SIM_TABLE_DEF, 
     GET_RECEIVER_BASE64_IMAGE,
     VLM_USER_PROMPTS,
@@ -32,10 +32,10 @@ supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = UR10e_Robot(supervisor)
 
-receiver = supervisor.getDevice(OVERHEAD_RECEIVER)
+receiver = supervisor.getDevice(CAM1_RECEIVER)
 receiver.enable(timestep)
 
-cam_node = supervisor.getFromDef(OVERHEAD_CAM_DEF)
+cam_node = supervisor.getFromDef(CAM1_DEF)
 CAM_WIDTH = cam_node.getField("width").getSFInt32()
 CAM_HEIGHT = cam_node.getField("height").getSFInt32()
 CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()

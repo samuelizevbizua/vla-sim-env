@@ -14,7 +14,7 @@ from utils.VLA import ACTION
 from utils.TEST import LOG_OOD
 
 from config import (
-    PERSPECTIVE_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
+    CAM2_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
     GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N
 )
 
@@ -22,7 +22,7 @@ supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = UR10e_Robot(supervisor)
 
-receiver = supervisor.getDevice(PERSPECTIVE_RECEIVER)
+receiver = supervisor.getDevice(CAM2_RECEIVER)
 receiver.enable(timestep)
 
 table_node = supervisor.getFromDef(SIM_TABLE_DEF)

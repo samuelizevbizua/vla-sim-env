@@ -14,7 +14,7 @@ from utils.VLM import ASK
 from utils.TEST import LOG_OOD
 
 from config import (
-    OVERHEAD_CAM_DEF, OVERHEAD_RECEIVER, SIM_TABLE_DEF, GET_RECEIVER_BASE64_IMAGE,
+    CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF, GET_RECEIVER_BASE64_IMAGE,
     VLM_USER_PROMPTS, GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD
 )
 
@@ -22,10 +22,10 @@ supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = UR10e_Robot(supervisor)
 
-receiver = supervisor.getDevice(OVERHEAD_RECEIVER)
+receiver = supervisor.getDevice(CAM1_RECEIVER)
 receiver.enable(timestep)
 
-cam_node = supervisor.getFromDef(OVERHEAD_CAM_DEF)
+cam_node = supervisor.getFromDef(CAM1_DEF)
 CAM_WIDTH, CAM_HEIGHT = cam_node.getField("width").getSFInt32(), cam_node.getField("height").getSFInt32()
 CAM_X, CAM_Y, CAM_Z = cam_node.getParentNode().getPosition()
 CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
