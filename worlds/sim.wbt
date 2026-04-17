@@ -10,9 +10,9 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq3fGripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR10e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/breakfast/protos/JamJar.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Hammer.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/balls/protos/Ball.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/VarnishedPine.proto"
 
 WorldInfo {
   info [
@@ -22,8 +22,8 @@ WorldInfo {
   basicTimeStep 16
 }
 DEF VIEWPOINT Viewpoint {
-  orientation 0.26419773510964595 -0.7159926241828848 -0.646184276254568 5.250490075029412
-  position -1.8901758868357743 -1.146714582631345 3.435968195679517
+  orientation -0.21460624080072632 -0.7294093545685278 0.649543035431298 5.42645903340224
+  position -1.8835809383903377 1.9109109809319904 2.359216861830091
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -31,7 +31,8 @@ TexturedBackground {
   luminosity 1.9
 }
 DirectionalLight {
-  intensity 0.8
+  intensity 0.7
+  castShadows TRUE
 }
 Floor {
   size 20 20
@@ -42,16 +43,14 @@ Floor {
 }
 DEF SIM_TABLE Table {
   translation 0.01 0.84 0
+  name "Table"
   size 1.2 1 0.68
-  feetSize 0.05 0.05
-  frameThickness 0.03
-  trayAppearance Parquetry {
-    type "light strip"
-    colorOverride 0.8 0.760784 0.619608
-    IBLStrength 2.5
-  }
-  legAppearance BrushedAluminium {
-    colorOverride 0.333 0.341 0.325
+  trayAppearance VarnishedPine {
+    colorOverride 0.921569 0.929412 0.929412
+    textureTransform TextureTransform {
+      scale 10 10
+    }
+    IBLStrength 2
   }
 }
 Table {
@@ -68,46 +67,42 @@ Table {
   }
 }
 DEF BIN PlasticCrate {
-  translation -0.33 0.88 0.68
+  translation -0.33 0.77 0.68
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
   size 0.25 0.25 0.1
   color 0 0.8 0
 }
 DEF OBJ1 Solid {
-  translation 0.0325158 0.726173 0.709814
-  rotation -6.320772219305378e-17 5.532489146998496e-19 -1 0.523595307179586
+  translation 0.381533 0.99232 0.709814
+  rotation 3.16779e-17 8.19158e-18 1 -1.047195307179586
   children [
     Shape {
       appearance PBRAppearance {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.06 0.06 0.06
+        size 0.08 0.08 0.08
       }
     }
   ]
   name "solid(3)"
   boundingObject Box {
-    size 0.06 0.06 0.06
+    size 0.08 0.08 0.08
   }
   physics Physics {
   }
 }
 DEF OBJ2 JamJar {
-  translation 0.13 1.08 0.679416
+  translation -0.12 1.07 0.679416
   rotation -0.6574732837534386 0.7122627240662257 0.2457858683004984 2.0158456947453168e-17
 }
 Ball {
-  translation 0.4 0.94 0.729525
+  translation 0.45 0.54 0.729525
   radius 0.05
 }
-Hammer {
-  translation 0.320245 0.704463 0.691454
-  rotation -0.018153476351501902 -0.0007677503877282416 -0.9998349173017002 0.7771603802262411
-}
 Wrench {
-  translation 0.430793 1.21614 0.678694
+  translation -0.35346 1.13776 0.678702
   rotation -3.842107973166676e-05 1.815385175517559e-05 0.9999999990971292 1.0471999841972754
 }
 Robot {

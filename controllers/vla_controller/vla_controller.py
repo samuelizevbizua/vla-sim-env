@@ -15,7 +15,8 @@ from utils.VLA import ACTION
 
 from config import (
     CAM2_RECEIVER, SIM_TABLE_DEF, CAM1_RECEIVER,
-    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N, VLA_USER_PROMPTS
+    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N, VLA_USER_PROMPTS,
+    GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT
 )
 
 supervisor = Supervisor()
@@ -32,7 +33,7 @@ TABLE_HEIGHT = table_node.getField("size").getSFVec3f()[2]
 
 current_x = float(table_pos[0])
 current_y = float(table_pos[1])
-current_z = TABLE_HEIGHT + 0.2
+current_z = TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT
 
 print("[System] Moving to start pose...")
 robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
@@ -41,6 +42,8 @@ robot.operate_gripper(close=False)
 # Tracking for baseline
 has_picked = False
 step_counter = 0
+# current_prompt = "pick up the blue cube"
+current_prompt = "hover over the orange ball"
 
 print("[Brain] VLA Continuous Loop starting...")
 
@@ -51,42 +54,41 @@ while supervisor.step(timestep) != -1:
     img = GET_RECEIVER_BASE64_IMAGE(receiver)
     if not img: continue
 
-    # Call the VLA Brain
     # action = ACTION(img, VLA_USER_PROMPTS["baseline"])
-    action = ACTION(img, "pick up the orange ball")
+    print(f"current prompt: {current_prompt}")
+    action = ACTION(img, current_prompt)
     
     if action is None:
         print("[System] Waiting for Brain...")
-        continue 
+        continue
 
-    # --- THE FIX: Print the raw output and safely extract ---
-    print("-" * 40)
-    print(f"[Debug] Brain Output Array ({len(action)} dimensions):")
-    print([round(a, 4) for a in action])
-    
-    dx, dy, dz, gripper_state = action[0], action[1], action[2], action[-1]
+    # [x,y,z p,y g]
 
-    print(f"[VLA] Raw Target -> X={dx:+.4f} | Y={dy:+.4f} | Z={dz:+.4f} | grip={gripper_state:.2f}")
+    # 1. Extract based on SO-100 Joint Kinematics
+    base_pan = action[0]
+    shoulder = action[1]
+    elbow    = action[2]
+    gripper_state = action[5]
+
+    print(f"[VLA] Joints -> Base={base_pan:+.2f} | Shoulder={shoulder:+.2f} | Elbow={elbow:+.2f}")
 
     # ---------------------------------------------------------
-    # CALIBRATION OFFSETS (Sim-to-AI Translation)
+    # CALIBRATION OFFSETS & SCALING
     # ---------------------------------------------------------
-    robot_pos = robot.robot_node.getPosition()
-    
-    # 1. Align the AI's 0,0 center to the Webots Robot Base, NOT the table.
-    AI_ORIGIN_X = float(robot_pos[0])
-    AI_ORIGIN_Y = float(robot_pos[1])
-    
-    # 2. Fix the Table Crash
-    # The AI reaches down to about -0.80 when it thinks it is touching the table.
-    # Therefore, the AI's "Shoulder" must be exactly 80cm above the table.
-    # We add 0.02 (2cm) as a safety hover buffer so it doesn't scrape the wood.
-    AI_ORIGIN_Z = TABLE_HEIGHT + 0.82 
+    START_X = float(table_pos[0]) 
+    START_Y = float(table_pos[1])
+    START_Z = TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT
 
-    # Translate local AI target to global Webots target
-    target_x = AI_ORIGIN_X + dy
-    target_y = AI_ORIGIN_Y - dx
-    target_z = AI_ORIGIN_Z + dz
+    # AI +Base = Right. Webots +X = Right.
+    target_x = START_X + (base_pan * 0.5)    
+    
+    # AI -Elbow = Forward. Webots +Y = Forward.
+    target_y = START_Y - (elbow * 0.4) 
+    
+    # AI -Shoulder = Down. 
+    # If shoulder is -1.0, 0.35 + (-1.0 * 0.35) = 0.0 (It perfectly touches the table!)
+    # target_z = START_Z + (shoulder * 0.35)
+    target_z = START_Z
 
     # Command the physical body
     robot.move_to_world_target([target_x, target_y, target_z], settle_time_ms=0)
@@ -95,11 +97,16 @@ while supervisor.step(timestep) != -1:
     if gripper_state > 0.5:
         robot.operate_gripper(close=True)
         if not has_picked:
-            print(" -> [State] VLA initiated Pick!")
+            print(" -> [State] VLA initiated Pick! Changing instruction to Place.")
             has_picked = True
+            print(f"picked cube, robot position at {supervisor.getSelf().getPosition()}")
+            # Change the AI's goal now that the cube is grasped!
+            # current_prompt = "place the pink cube in the green crate"
+            
     else:
         robot.operate_gripper(close=False)
         if has_picked:
+            # If it opens its gripper again AFTER having picked it up, it means it dropped it!
             print(" -> [State] VLA initiated Drop! Ending sequence.")
             break 
 
