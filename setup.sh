@@ -31,10 +31,11 @@ if [ -d "lerobot" ]; then
   rm -rf lerobot
 fi
 
-# Clone the LeRobot repository
+# Clone the LeRobot 
+sitory
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
-pip install -e ".[smolvla,dataset]"
+pip install -e ".[smolvla,dataset,viz]"
 cd ..
 
 echo "🎉 Setup complete."
