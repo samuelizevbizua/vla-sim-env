@@ -14,12 +14,27 @@ fi
 # Remove existing pycache directories
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
-# Create a fresh virtual environment with Python 3.11
-python3.11 -m venv .venv
+# Create a fresh virtual environment with Python 3.12
+python3.12 -m venv .venv
 
 # Activate the virtual environment
-# shellcheck source=/dev/null
 source .venv/bin/activate
 
-# Install Python dependencies
+# Upgrade pip
+pip install --upgrade pip
+
+# Install Python dependencies from requirements.txt
 pip install -r requirements.txt
+
+# ===== Install LeRobot in the same environment =====
+if [ -d "lerobot" ]; then
+  rm -rf lerobot
+fi
+
+# Clone the LeRobot repository
+git clone https://github.com/huggingface/lerobot.git
+cd lerobot
+pip install -e ".[smolvla,dataset]"
+cd ..
+
+echo "🎉 Setup complete."

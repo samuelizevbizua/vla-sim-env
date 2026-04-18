@@ -31,8 +31,8 @@ WorldInfo {
   ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation 0.03296926227524103 0.9957779229298364 -0.08567004114955937 0.7756558073648909
-  position -2.475969223307018 0.5004091122037699 3.430967031589142
+  orientation 0.4067475990602263 0.10063787431747351 -0.9079804011715239 2.702860046467161
+  position 1.863504916084162 1.4517181994560806 2.612685421298721
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -153,10 +153,31 @@ Robot {
 }
 UR5e {
   translation 0 0 0.7
-  controller "ik_controller"
+  controller "record_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
+    Robotiq2f85Gripper {
+      rotation 1 0 0 -1.5707953071795862
+    }
+    Robot {
+      translation -0.035 0.05 0
+      children [
+        Emitter {
+          name "cam3_emitter"
+          channel 3
+        }
+        DEF CAM3 Camera {
+          rotation 2.173249999993123e-06 1.2671299999959905e-06 0.9999999999968356 1.309
+          name "cam3"
+          fieldOfView 1.2
+          width 512
+          height 512
+        }
+      ]
+      name "wrist_camera"
+      controller "cam3_controller"
+    }
     Receiver {
       name "cam1_receiver"
       channel 1
@@ -167,8 +188,10 @@ UR5e {
       channel 2
       bufferSize 2000000
     }
-    Robotiq2f85Gripper {
-      rotation 1 0 0 -1.5707953071795862
+    Receiver {
+      name "cam3_receiver"
+      channel 3
+      bufferSize 2000000
     }
   ]
 }
