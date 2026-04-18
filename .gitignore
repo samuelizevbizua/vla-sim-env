@@ -11,3 +11,4 @@ tmp/
 
 results/
 berkeley_autolab_ur5/
+.lerobot_venv/
