@@ -1,5 +1,5 @@
 import numpy as np
-from ur_analytic_ik import ur10e
+from ur_analytic_ik import ur5e as ur10e
 from config import GRIPPER_TARGET_ANGLE_OPEN, GRIPPER_TARGET_ANGLE_CLOSED,  ARM_MOTOR_VELOCITY, GRIPPER_MOTOR_VELOCITY
 
 class IK_Solver:
@@ -31,7 +31,7 @@ class IK_Solver:
 
         # --- THE WRIST TWIST ---
         # Twist the wrist around the Z-axis. 
-        twist_angle = np.radians(25) 
+        twist_angle = np.radians(0) 
         twist_matrix = np.array([
             [np.cos(twist_angle), -np.sin(twist_angle), 0],
             [np.sin(twist_angle),  np.cos(twist_angle), 0],
@@ -92,29 +92,19 @@ class UR10e_Robot:
                 print(f"Warning: Could not find motor '{name}'")
 
     def _init_gripper_hardware(self):
-        # We must grab all 3 joints for all 3 fingers so they actually curl!
         gripper_names = [
-            'finger_1_joint_1', 'finger_1_joint_2', 'finger_1_joint_3',
-            'finger_2_joint_1', 'finger_2_joint_2', 'finger_2_joint_3',
-            'finger_middle_joint_1', 'finger_middle_joint_2', 'finger_middle_joint_3'
+            'ROBOTIQ 2F-85 Gripper::left finger joint',
+            'ROBOTIQ 2F-85 Gripper::right finger joint'
         ]
-        scissor_names = ['palm_finger_1_joint', 'palm_finger_2_joint']
-        
+
         self.gripper_motors = []
         for name in gripper_names:
-            g_motor = self.supervisor.getDevice(name)
-            if g_motor:
-                self.gripper_motors.append(g_motor)
+            motor = self.supervisor.getDevice(name)
+            if motor:
+                motor.setVelocity(GRIPPER_MOTOR_VELOCITY)
+                self.gripper_motors.append(motor)
             else:
                 print(f"Warning: Could not find gripper motor '{name}'")
-                
-        self.scissor_motors = []
-        for name in scissor_names:
-            s_motor = self.supervisor.getDevice(name)
-            if s_motor:
-                self.scissor_motors.append(s_motor)
-            else:
-                print(f"Warning: Could not find scissor motor '{name}'")
 
     def _init_matrices(self):
         # Webots vs UR Coordinate Alignment
@@ -133,7 +123,7 @@ class UR10e_Robot:
         steps = 0
 
         if is_gripper:
-            gripper_stall_steps = int(1500 / self.timestep) # Wait 1.5 seconds to clamp
+            gripper_stall_steps = int(2000 / self.timestep) # Wait 2 seconds to clamp
             for _ in range(gripper_stall_steps):
                 self.supervisor.step(self.timestep)
             return
@@ -181,23 +171,11 @@ class UR10e_Robot:
             print("      -> [Error] Target out of physical reach.")
 
     def operate_gripper(self, close=True):
-        scissor_angle = 0.17 if close else 0.0
+        target_angle = GRIPPER_TARGET_ANGLE_CLOSED if close else GRIPPER_TARGET_ANGLE_OPEN
 
-        for s_motor in self.scissor_motors:
-            s_motor.setVelocity(GRIPPER_MOTOR_VELOCITY)
-            s_motor.setPosition(scissor_angle)
+        for motor in self.gripper_motors:
+            motor.setPosition(target_angle)
 
-        for g_motor in self.gripper_motors:
-            g_motor.setVelocity(GRIPPER_MOTOR_VELOCITY)
-            name = g_motor.getName()
-            if 'joint_3' in name:
-                target_angle = -GRIPPER_TARGET_ANGLE_CLOSED if close else -GRIPPER_TARGET_ANGLE_OPEN
-            else:
-                target_angle = GRIPPER_TARGET_ANGLE_CLOSED if close else GRIPPER_TARGET_ANGLE_OPEN
-                
-            g_motor.setPosition(target_angle)
-
-        # Wait for the physical movement to finish
         if close:
             self._wait_to_arrive([target_angle]*6, is_gripper=True)
         else:

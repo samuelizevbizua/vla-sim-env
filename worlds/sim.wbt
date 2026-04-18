@@ -7,23 +7,32 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq3fGripper.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR10e.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/breakfast/protos/JamJar.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR5e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/balls/protos/Ball.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/VarnishedPine.proto"
+EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
 WorldInfo {
   info [
     "This example showcases Franka Emika's Panda robot in a factory setting."
   ]
   title "UR Demo"
-  basicTimeStep 16
+  basicTimeStep 8
+  contactProperties [
+    ContactProperties {
+      material1 "ROBOTIQ gripper pad"
+      coulombFriction [
+        2
+      ]
+      softCFM 1e-05
+    }
+  ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.21460624080072632 -0.7294093545685278 0.649543035431298 5.42645903340224
-  position -1.8835809383903377 1.9109109809319904 2.359216861830091
+  orientation 0.03296926227524103 0.9957779229298364 -0.08567004114955937 0.7756558073648909
+  position -2.475969223307018 0.5004091122037699 3.430967031589142
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -42,9 +51,9 @@ Floor {
   }
 }
 DEF SIM_TABLE Table {
-  translation 0.01 0.84 0
+  translation 0 0.52 0
   name "Table"
-  size 1.2 1 0.68
+  size 1 0.7 0.68
   trayAppearance VarnishedPine {
     colorOverride 0.921569 0.929412 0.929412
     textureTransform TextureTransform {
@@ -67,46 +76,46 @@ Table {
   }
 }
 DEF BIN PlasticCrate {
-  translation -0.33 0.77 0.68
+  translation -0.27 0.58 0.68
   rotation 0 0 -0.9999999999999999 1.5707953071795862
   name "plastic crate(2)"
-  size 0.25 0.25 0.1
+  size 0.3 0.2 0.1
   color 0 0.8 0
 }
 DEF OBJ1 Solid {
-  translation 0.381533 0.99232 0.709814
-  rotation 3.16779e-17 8.19158e-18 1 -1.047195307179586
+  translation 0.301013 0.6918 0.70730264
+  rotation -3.16779e-17 -8.19158e-18 -1 1.047195307179586
   children [
     Shape {
       appearance PBRAppearance {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.08 0.08 0.08
+        size 0.05 0.05 0.05
       }
     }
   ]
   name "solid(3)"
   boundingObject Box {
-    size 0.08 0.08 0.08
+    size 0.05 0.05 0.05
   }
   physics Physics {
   }
 }
-DEF OBJ2 JamJar {
-  translation -0.12 1.07 0.679416
-  rotation -0.6574732837534386 0.7122627240662257 0.2457858683004984 2.0158456947453168e-17
+DEF OBJ2 RubberDuck {
+  translation 0.0816297 0.691627 0.679422962935145
 }
 Ball {
-  translation 0.45 0.54 0.729525
-  radius 0.05
+  translation 0.3 0.43 0.72701364
+  color 0.952438 0.151415 0.891646
+  radius 0.03
 }
 Wrench {
-  translation -0.35346 1.13776 0.678702
-  rotation -3.842107973166676e-05 1.815385175517559e-05 0.9999999990971292 1.0471999841972754
+  translation 0.1520380069668978 0.45330300519164385 0.6787777889594279
+  rotation -3.745872498823644e-05 9.709278782946421e-06 0.9999999992512869 1.0471999830396552
 }
 Robot {
-  translation 0 0.84 2.7
+  translation 0 0.52 2.7
   children [
     Emitter {
       name "cam1_emitter"
@@ -115,9 +124,9 @@ Robot {
     DEF CAM1 Camera {
       rotation 0.577656895078166 -0.5771968951617173 -0.5771968951617173 -2.093935307179586
       name "cam1"
-      fieldOfView 0.58
+      fieldOfView 0.45
       width 640
-      height 512
+      height 480
     }
   ]
   name "cam1_rig"
@@ -131,7 +140,7 @@ Robot {
       channel 2
     }
     DEF CAM2 Camera {
-      rotation 0.17805905216338633 -0.9734482851770709 -0.14385204214225314 -0.667645307179586
+      rotation 0.17890494052440417 -0.9753756757437256 0.1289779571222526 -0.9090153071795859
       name "cam2"
       fieldOfView 1.1
       width 640
@@ -142,9 +151,9 @@ Robot {
   name "cam2_rig"
   controller "cam2_controller"
 }
-UR10e {
+UR5e {
   translation 0 0 0.7
-  controller "vla_controller"
+  controller "ik_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
@@ -158,7 +167,8 @@ UR10e {
       channel 2
       bufferSize 2000000
     }
-    Robotiq3fGripper {
+    Robotiq2f85Gripper {
+      rotation 1 0 0 -1.5707953071795862
     }
   ]
 }

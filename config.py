@@ -18,10 +18,10 @@ SIM_TABLE_DEF = "SIM_TABLE"
 
 ARM_MOTOR_VELOCITY = 1.0
 GRIPPER_MOTOR_VELOCITY = 0.6
-GRIPPER_TARGET_HOVER_HEIGHT = 0.035
+GRIPPER_TARGET_HOVER_HEIGHT = 0.0
 GRIPPER_LIFT_HEIGHT = 0.2
-GRIPPER_TARGET_ANGLE_OPEN = 0.06
-GRIPPER_TARGET_ANGLE_CLOSED = 0.85
+GRIPPER_TARGET_ANGLE_OPEN = 0.0
+GRIPPER_TARGET_ANGLE_CLOSED = 0.8
 
 # -- HUGGING FACE AND PROMPT CONFIG ---
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
@@ -30,10 +30,10 @@ HF_BASE_URL = os.getenv("HF_BASE_URL")
 # VLM CONFIG
 VLM_PATH = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
 VLM_USER_PROMPTS = {
-    "baseline": "Identify ONE blue cube and the green sorting bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
-    "nudge_obj": "Identify ONE blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge_bin": "Identify the green bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "ood_test": "Identify the jam jar and the green sorting bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
+    "baseline": "Identify the blue cube and the green crate. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "nudge_obj": "Identify the blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "nudge_bin": "Identify the green crate. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "ood_test": "Identify the jam jar and the green crate. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
 # VLA CONFIG
@@ -41,9 +41,9 @@ VLA_PATH = "lerobot/smolvla_base"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 INFERENCE_EVERY_N = 5 
 VLA_USER_PROMPTS = {
-    "baseline": "pick up the blue cube and put it in the green bin",
-    "nudge": "pick up the blue cube and put it in the green bin",
-    "ood": "pick up the jam jar and put it in the green bin"
+    "baseline": "pick up the blue cube and put it in the green crate",
+    "nudge": "pick up the blue cube and put it in the green crate",
+    "ood": "pick up the jam jar and put it in the green crate"
 }
 
 # TESTING / DEBUGGING PARAMETERS
@@ -73,8 +73,7 @@ def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False):
     return None
 
 def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):
-    CUBE_HEIGHT = 0
-    _height = CAM_Z - (TABLE_HEIGHT + CUBE_HEIGHT)
+    _height = CAM_Z - TABLE_HEIGHT
 
     _ground_w = 2.0 * _height * np.tan(CAM_FOV / 2.0)
     _ground_h = _ground_w * (CAM_HEIGHT / CAM_WIDTH)
