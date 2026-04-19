@@ -43,12 +43,8 @@ class IK_Solver:
 
         # Solve using the closest joint configuration AND the gripper length offset
         solution = ur10e.inverse_kinematics_closest_with_tcp(
-            target_pose,
-            self.tcp_transform,
-            *current_joints # Unpacks the 6 current angles into the function
+            target_pose, self.tcp_transform, *current_joints
         )
-
-        # Return the single best solution
         if solution is not None and len(solution) > 0:
             return np.array(solution).flatten().tolist()
         else:
@@ -60,16 +56,10 @@ class UR10e_Robot:
         self.supervisor = supervisor
         self.timestep = int(supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getSelf()
-        
-        # 1. Setup Math Solver
         self.solver = IK_Solver(gripper_length=0.16)
-        
-        # 2. Setup Hardware
         self._init_arm_hardware()
         self._init_gripper_hardware()
         self._init_matrices()
-        
-        # 3. Warm up sensors
         for _ in range(5):
             self.supervisor.step(self.timestep)
 
@@ -118,12 +108,12 @@ class UR10e_Robot:
         ])
 
     def _wait_to_arrive(self, target_joints, is_gripper=False):
-        tolerance, timeout_seconds = 0.02, 3.0
+        tolerance, timeout_seconds = 0.04, 7.0
         max_steps = int((timeout_seconds * 1000) / self.timestep)
         steps = 0
 
         if is_gripper:
-            gripper_stall_steps = int(2000 / self.timestep) # Wait 2 seconds to clamp
+            gripper_stall_steps = int(2000 / self.timestep)
             for _ in range(gripper_stall_steps):
                 self.supervisor.step(self.timestep)
             return
@@ -146,9 +136,8 @@ class UR10e_Robot:
 
     def move_to_world_target(self, target_pos_world, wait=True, settle_time_ms=300):
         robot_pos_world = np.array(self.robot_node.getPosition())
-        robot_rot_world = np.array(self.robot_node.getOrientation()).reshape(3, 3) 
-        
-        # Translations
+        robot_rot_world = np.array(self.robot_node.getOrientation()).reshape(3, 3)
+
         target_vector_world = target_pos_world - robot_pos_world
         target_pos_local = robot_rot_world.T.dot(target_vector_world)
         ik_target_local = self.rotation_matrix.dot(target_pos_local)
@@ -163,19 +152,16 @@ class UR10e_Robot:
                 self._wait_to_arrive(joint_angles)
                 
             if settle_time_ms > 0:
-                timestep = int(self.supervisor.getBasicTimeStep())
-                steps = int(settle_time_ms / timestep)
+                steps = int(settle_time_ms / self.timestep)
                 for _ in range(steps):
-                    self.supervisor.step(timestep)
+                    self.supervisor.step(self.timestep)
         else:
             print("      -> [Error] Target out of physical reach.")
 
     def operate_gripper(self, close=True):
         target_angle = GRIPPER_TARGET_ANGLE_CLOSED if close else GRIPPER_TARGET_ANGLE_OPEN
-
         for motor in self.gripper_motors:
             motor.setPosition(target_angle)
-
         if close:
             self._wait_to_arrive([target_angle]*6, is_gripper=True)
         else:

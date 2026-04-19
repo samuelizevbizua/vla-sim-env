@@ -15,24 +15,22 @@ EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
 WorldInfo {
-  info [
-    "This example showcases Franka Emika's Panda robot in a factory setting."
-  ]
-  title "UR Demo"
   basicTimeStep 8
+  physicsDisableTime 0.1
   contactProperties [
     ContactProperties {
       material1 "ROBOTIQ gripper pad"
       coulombFriction [
         2
       ]
+      bounce 0.1
       softCFM 1e-05
     }
   ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation 0.4067475990602263 0.10063787431747351 -0.9079804011715239 2.702860046467161
-  position 1.863504916084162 1.4517181994560806 2.612685421298721
+  orientation 0.2678650507528997 -0.3681004156922498 -0.8903653174693741 4.9177141810338805
+  position -0.6470500480820268 -1.150936245726861 2.1470850210398975
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -83,7 +81,7 @@ DEF BIN PlasticCrate {
   color 0 0.8 0
 }
 DEF OBJ1 Solid {
-  translation 0.301013 0.6918 0.70730264
+  translation 0.301013 0.6918 0.72
   rotation -3.16779e-17 -8.19158e-18 -1 1.047195307179586
   children [
     Shape {
@@ -103,15 +101,15 @@ DEF OBJ1 Solid {
   }
 }
 DEF OBJ2 RubberDuck {
-  translation 0.0816297 0.691627 0.679422962935145
+  translation 0.0816297 0.691627 0.72
 }
 Ball {
-  translation 0.3 0.43 0.72701364
+  translation 0.3 0.43 0.72
   color 0.952438 0.151415 0.891646
   radius 0.03
 }
 Wrench {
-  translation 0.1520380069668978 0.45330300519164385 0.6787777889594279
+  translation 0.152038 0.453303 0.7
   rotation -3.745872498823644e-05 9.709278782946421e-06 0.9999999992512869 1.0471999830396552
 }
 Robot {
