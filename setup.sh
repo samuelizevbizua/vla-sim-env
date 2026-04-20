@@ -31,8 +31,7 @@ if [ -d "lerobot" ]; then
   rm -rf lerobot
 fi
 
-# Clone the LeRobot 
-sitory
+# Clone the LeRobot repository and install it in editable mode with extra dependencies
 git clone https://github.com/huggingface/lerobot.git
 cd lerobot
 pip install -e ".[smolvla,dataset,viz]"

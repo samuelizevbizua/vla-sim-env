@@ -29,8 +29,8 @@ WorldInfo {
   ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation 0.2678650507528997 -0.3681004156922498 -0.8903653174693741 4.9177141810338805
-  position -0.6470500480820268 -1.150936245726861 2.1470850210398975
+  orientation -0.1365789823756571 0.7802916849717252 0.61032046331187 0.5487841813690124
+  position -3.206840641124769 -0.7961337122209937 2.6659906890017004
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -131,19 +131,34 @@ Robot {
   controller "cam1_controller"
 }
 Robot {
-  translation -0.8 0.6 1.4
+  translation -0.9 0.3 1.4
   children [
     Emitter {
       name "cam2_emitter"
       channel 2
     }
+    Emitter {
+      name "cam2_depth_emitter"
+      channel 4
+    }
     DEF CAM2 Camera {
-      rotation 0.17890494052440417 -0.9753756757437256 0.1289779571222526 -0.9090153071795859
+      rotation -0.13532004183852764 0.9618402973837529 0.23780607352536878 0.669007
       name "cam2"
-      fieldOfView 1.1
+      fieldOfView 0.9
       width 640
-      height 512
+      height 480
       near 0.05
+    }
+    DEF CAM2_DEPTH RangeFinder {
+      rotation -0.13532004183852764 0.9618402973837529 0.23780607352536878 0.669007
+      name "cam2_depth"
+      fieldOfView 0.9
+      width 640
+      height 480
+      near 0.05
+      minRange 0.1
+      maxRange 5.0
+      resolution 0.01
     }
   ]
   name "cam2_rig"
@@ -184,6 +199,11 @@ UR5e {
     Receiver {
       name "cam2_receiver"
       channel 2
+      bufferSize 2000000
+    }
+    Receiver {
+      name "cam2_depth_receiver"
+      channel 4
       bufferSize 2000000
     }
     Receiver {

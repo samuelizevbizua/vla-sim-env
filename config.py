@@ -12,8 +12,9 @@ CAM3_NAME, CAM3_DEF = "cam3", "CAM3" # wrist camera node
 CAM1_EMITTER = "cam1_emitter"
 CAM1_RECEIVER = "cam1_receiver"
 
-CAM2_EMITTER = "cam2_emitter"
-CAM2_RECEIVER = "cam2_receiver"
+CAM2_EMITTER, CAM2_DEPTH_EMITTER = "cam2_emitter", "cam2_depth_emitter"
+CAM2_RECEIVER, CAM2_DEPTH_RECEIVER = "cam2_receiver", "cam2_depth_receiver"
+CAM2_DEPTH_NAME, CAM2_DEPTH_DEF = "cam2_depth", "CAM2_DEPTH"
 
 CAM3_EMITTER = "cam3_emitter"
 CAM3_RECEIVER = "cam3_receiver"
