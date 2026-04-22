@@ -131,7 +131,7 @@ Robot {
   controller "cam1_controller"
 }
 Robot {
-  translation -0.9 0.3 1.4
+  translation -0.45 0 1.65
   children [
     Emitter {
       name "cam2_emitter"
@@ -142,7 +142,7 @@ Robot {
       channel 4
     }
     DEF CAM2 Camera {
-      rotation -0.13532004183852764 0.9618402973837529 0.23780607352536878 0.669007
+      rotation -0.3808460331829259 0.5714360497889395 0.7269230633364457 1.24077
       name "cam2"
       fieldOfView 0.9
       width 640
@@ -150,14 +150,14 @@ Robot {
       near 0.05
     }
     DEF CAM2_DEPTH RangeFinder {
-      rotation -0.13532004183852764 0.9618402973837529 0.23780607352536878 0.669007
+      rotation -0.3808460331829259 0.5714360497889395 0.7269230633364457 1.24077
       name "cam2_depth"
       fieldOfView 0.9
       width 640
       height 480
       near 0.05
       minRange 0.1
-      maxRange 5.0
+      maxRange 5
       resolution 0.01
     }
   ]
