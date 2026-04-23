@@ -2,7 +2,7 @@
 
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BakelitePlastic.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/RoughPolymer.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
@@ -16,26 +16,26 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 
 WorldInfo {
   basicTimeStep 8
-  physicsDisableTime 0.1
+  physicsDisableTime 3
   contactProperties [
     ContactProperties {
       material1 "ROBOTIQ gripper pad"
       coulombFriction [
-        2
+        20
       ]
-      bounce 0.1
-      softCFM 1e-05
+      bounce 0
+      softCFM 1e-06
     }
   ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.1365789823756571 0.7802916849717252 0.61032046331187 0.5487841813690124
-  position -3.206840641124769 -0.7961337122209937 2.6659906890017004
+  orientation -0.26986069549876573 0.6918065351033879 0.669760347447628 1.0498835620908684
+  position -1.2952813844190905 -0.512201689611729 2.3312894380164373
   ambientOcclusionRadius 1
 }
 TexturedBackground {
   texture "empty_office"
-  luminosity 1.9
+  luminosity 2.5
 }
 DirectionalLight {
   intensity 0.7
@@ -44,14 +44,14 @@ DirectionalLight {
 Floor {
   size 20 20
   tileSize 2 2
-  appearance BakelitePlastic {
-    color "braun"
+  appearance RoughPolymer {
+    baseColor 0 0 0
   }
 }
 DEF SIM_TABLE Table {
   translation 0 0.52 0
   name "Table"
-  size 1 0.7 0.68
+  size 0.8 0.5 0.7
   trayAppearance VarnishedPine {
     colorOverride 0.921569 0.929412 0.929412
     textureTransform TextureTransform {
@@ -74,10 +74,9 @@ Table {
   }
 }
 DEF BIN PlasticCrate {
-  translation -0.27 0.58 0.68
-  rotation 0 0 -0.9999999999999999 1.5707953071795862
-  name "plastic crate(2)"
-  size 0.3 0.2 0.1
+  translation -0.27 0.52 0.7
+  rotation 0 0 -1 0
+  size 0.2 0.2 0.07
   color 0 0.8 0
 }
 DEF OBJ1 Solid {
@@ -89,13 +88,13 @@ DEF OBJ1 Solid {
         baseColor 0 0 1
       }
       geometry Box {
-        size 0.05 0.05 0.05
+        size 0.04 0.04 0.04
       }
     }
   ]
   name "solid(3)"
   boundingObject Box {
-    size 0.05 0.05 0.05
+    size 0.04 0.04 0.04
   }
   physics Physics {
   }
@@ -113,7 +112,7 @@ Wrench {
   rotation -3.745872498823644e-05 9.709278782946421e-06 0.9999999992512869 1.0471999830396552
 }
 Robot {
-  translation 0 0.52 2.7
+  translation 0 0.52 2.4
   children [
     Emitter {
       name "cam1_emitter"
@@ -123,7 +122,7 @@ Robot {
       rotation 0.577656895078166 -0.5771968951617173 -0.5771968951617173 -2.093935307179586
       name "cam1"
       fieldOfView 0.45
-      width 640
+      width 720
       height 480
     }
   ]
@@ -131,7 +130,7 @@ Robot {
   controller "cam1_controller"
 }
 Robot {
-  translation -0.45 0 1.65
+  translation -0.66 0.12 1.6
   children [
     Emitter {
       name "cam2_emitter"
@@ -142,18 +141,18 @@ Robot {
       channel 4
     }
     DEF CAM2 Camera {
-      rotation -0.3808460331829259 0.5714360497889395 0.7269230633364457 1.24077
+      rotation -0.518322788007578 0.59244375769233 0.6167267477606619 1.06376
       name "cam2"
       fieldOfView 0.9
-      width 640
+      width 720
       height 480
       near 0.05
     }
     DEF CAM2_DEPTH RangeFinder {
-      rotation -0.3808460331829259 0.5714360497889395 0.7269230633364457 1.24077
+      rotation -0.518322788007578 0.59244375769233 0.6167267477606619 1.06376
       name "cam2_depth"
       fieldOfView 0.9
-      width 640
+      width 720
       height 480
       near 0.05
       minRange 0.1
@@ -174,7 +173,8 @@ UR5e {
       rotation 1 0 0 -1.5707953071795862
     }
     Robot {
-      translation -0.035 0.05 0
+      translation -0.04 0.04 0
+      rotation -0.2588198926055145 -0.9659255991997304 1.5204193691186013e-06 1.57079
       children [
         Emitter {
           name "cam3_emitter"

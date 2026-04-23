@@ -23,10 +23,10 @@ SIM_TABLE_DEF = "SIM_TABLE"
 
 ARM_MOTOR_VELOCITY = 0.5
 GRIPPER_MOTOR_VELOCITY = 0.6
-GRIPPER_TARGET_HOVER_HEIGHT = 0.0
+GRIPPER_TARGET_HOVER_HEIGHT = -0.002
 GRIPPER_LIFT_HEIGHT = 0.2
 GRIPPER_TARGET_ANGLE_OPEN = 0.0
-GRIPPER_TARGET_ANGLE_CLOSED = 0.8
+GRIPPER_TARGET_ANGLE_CLOSED = 0.7
 
 # -- HUGGING FACE AND PROMPT CONFIG ---
 HF_TOKEN = os.getenv("HF_TOKEN")
@@ -77,6 +77,22 @@ def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False, format="base64"):
             return base64_img
         elif format == "numpy":
             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return None
+
+def GET_RECEIVER_DEPTH_IMAGE(receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX_DEPTH):
+    last_packet = None
+    while receiver.getQueueLength() > 0:
+        last_packet = receiver.getBytes()
+        receiver.nextPacket()
+    
+    if last_packet:
+        depth_img = np.frombuffer(last_packet, dtype=np.float32).reshape((DEPTH_HEIGHT, DEPTH_WIDTH))
+        depth_norm = (depth_img - MIN_DEPTH) / (MAX_DEPTH - MIN_DEPTH)
+        depth_norm = np.clip(depth_norm, 0, 1)
+        depth_rgb = np.stack([depth_norm, depth_norm, depth_norm], axis=-1)
+        depth_rgb = (depth_rgb * 255).astype(np.uint8)
+        return depth_rgb
+
     return None
 
 def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):

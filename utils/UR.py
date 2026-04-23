@@ -31,7 +31,7 @@ class IK_Solver:
 
         # --- THE WRIST TWIST ---
         # Twist the wrist around the Z-axis. 
-        twist_angle = np.radians(0) 
+        twist_angle = np.radians(90) 
         twist_matrix = np.array([
             [np.cos(twist_angle), -np.sin(twist_angle), 0],
             [np.sin(twist_angle),  np.cos(twist_angle), 0],
@@ -57,6 +57,7 @@ class UR10e_Robot:
         self.timestep = int(supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getSelf()
         self.solver = IK_Solver(gripper_length=0.16)
+        self._target_joints = None
         self._init_arm_hardware()
         self._init_gripper_hardware()
         self._init_matrices()
@@ -166,3 +167,30 @@ class UR10e_Robot:
             self._wait_to_arrive([target_angle]*6, is_gripper=True)
         else:
             self._wait_to_arrive([-GRIPPER_TARGET_ANGLE_OPEN]*6, is_gripper=True)
+
+    def move_to_world_target_async(self, target_pos_world):
+        """Same as move_to_world_target but without waiting and without settle_time."""
+        robot_pos_world = np.array(self.robot_node.getPosition())
+        robot_rot_world = np.array(self.robot_node.getOrientation()).reshape(3, 3)
+
+        target_vector_world = target_pos_world - robot_pos_world
+        target_pos_local = robot_rot_world.T.dot(target_vector_world)
+        ik_target_local = self.rotation_matrix.dot(target_pos_local)
+
+        current_joints = [s.getValue() for s in self.sensors]
+        joint_angles = self.solver.get_link_pos(ik_target_local.tolist(), current_joints)
+
+        if joint_angles is not None:
+            for i in range(6):
+                self.motors[i].setPosition(joint_angles[i])
+            self._target_joints = joint_angles   # store for later check
+        else:
+            print("      -> [Error] Target out of physical reach.")
+            self._target_joints = None
+
+    def is_target_reached(self, tolerance=0.04):
+        if self._target_joints is None:
+            return True
+        current = [s.getValue() for s in self.sensors]
+        error = max(abs(np.array(current) - np.array(self._target_joints)))
+        return error < tolerance
