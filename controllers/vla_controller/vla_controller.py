@@ -42,7 +42,7 @@ robot.operate_gripper(close=False)
 # Tracking for baseline
 has_picked = False
 step_counter = 0
-# current_prompt = "pick up the blue cube"
+# current_prompt = "pick up the red cube"
 current_prompt = "hover over the orange ball"
 
 print("[Brain] VLA Continuous Loop starting...")

@@ -9,22 +9,20 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR5e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/balls/protos/Ball.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/RoughOak.proto"
 EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
 WorldInfo {
-  basicTimeStep 8
+  basicTimeStep 16
   physicsDisableTime 3
   contactProperties [
     ContactProperties {
       material1 "ROBOTIQ gripper pad"
       coulombFriction [
-        20
+        30
       ]
       bounce 0
-      softCFM 1e-06
     }
   ]
 }
@@ -49,9 +47,9 @@ Floor {
   }
 }
 DEF SIM_TABLE Table {
-  translation 0 0.52 0
+  translation 0 0.43 0
   name "Table"
-  size 0.8 0.7 0.7
+  size 0.8 0.6 0.7
   trayAppearance RoughOak {
     textureTransform TextureTransform {
       scale 15 15
@@ -62,8 +60,8 @@ DEF SIM_TABLE Table {
 Table {
   translation 0.01 0 0
   name "robo_table"
-  size 0.3 0.3 0.7
-  feetSize 0.3 0.3
+  size 0.2 0.2 0.7
+  feetSize 0.2 0.2
   trayAppearance Parquetry {
     type "dark strip"
     colorOverride 0.933333 0.933333 0.92549
@@ -73,18 +71,18 @@ Table {
   }
 }
 DEF BIN PlasticCrate {
-  translation -0.27 0.52 0.7
+  translation -0.27 0.54 0.7
   rotation 0 0 -1 0
   size 0.2 0.2 0.07
   color 0 0.8 0
 }
 DEF OBJ1 Solid {
-  translation 0.301013 0.6918 0.72
-  rotation -3.16779e-17 -8.19158e-18 -1 1.047195307179586
+  translation -0.037449 0.4468 0.72
+  rotation 2.01372e-17 1.13924e-17 1 -1.5707953071795862
   children [
     Shape {
       appearance PBRAppearance {
-        baseColor 0 0 1
+        baseColor 1 0 0
       }
       geometry Box {
         size 0.04 0.04 0.04
@@ -99,19 +97,15 @@ DEF OBJ1 Solid {
   }
 }
 DEF OBJ2 RubberDuck {
-  translation 0.0816297 0.691627 0.72
-}
-Ball {
-  translation 0.3 0.43 0.72
-  color 0.952438 0.151415 0.891646
-  radius 0.03
+  translation 0.0816297 0.621627 0.72
+  scale 0.6
 }
 Wrench {
-  translation 0.152038 0.453303 0.7
+  translation 0.200699 0.517583 0.700002
   rotation -3.745872498823644e-05 9.709278782946421e-06 0.9999999992512869 1.0471999830396552
 }
 Robot {
-  translation 0 0.52 2.4
+  translation 0 0.43 2.4
   children [
     Emitter {
       name "cam1_emitter"
@@ -129,7 +123,7 @@ Robot {
   controller "cam1_controller"
 }
 Robot {
-  translation -0.6 0.2 1.6
+  translation -0.6 0.2 1.5
   children [
     Emitter {
       name "cam2_emitter"

@@ -23,7 +23,7 @@ from config import (
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 # ========== Configuration ==========
-LANGUAGE_INSTRUCTION = "pick up the blue cube and put it in the green bin"
+LANGUAGE_INSTRUCTION = "pick up the red cube and put it in the green bin"
 NUM_EPISODES = 50
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 DATASET_ROOT = os.path.join(PROJECT_ROOT, "recorded_dataset")
@@ -76,21 +76,20 @@ depth_receiver.enable(timestep)
 
 target_node = supervisor.getFromDef("OBJ1")
 dest_node = supervisor.getFromDef("BIN")
-DEFAULT_CUBE_POS = target_node.getPosition()   # will be overwritten but kept
+DEFAULT_CUBE_POS = target_node.getPosition()
 DEFAULT_CUBE_ROT = target_node.getField("rotation").getSFRotation()
-# Safe default position (centre of table, avoid bin)
-DEFAULT_CUBE_POS = [0.2, 0.55, DEFAULT_CUBE_POS[2]]   # Z from original
+DEFAULT_CUBE_POS = [0.2, 0.55, DEFAULT_CUBE_POS[2]]
 
 # ========== Bin world bounding box ==========
 bin_pos = dest_node.getPosition()
-bin_size = dest_node.getField("size").getSFVec3f()   # (width, depth, height)
+bin_size = dest_node.getField("size").getSFVec3f()
 bin_half_world_x = bin_size[0] / 2.0
 bin_half_world_y = bin_size[1] / 2.0
 BIN_X_MIN = bin_pos[0] - bin_half_world_x
 BIN_X_MAX = bin_pos[0] + bin_half_world_x
 BIN_Y_MIN = bin_pos[1] - bin_half_world_y
 BIN_Y_MAX = bin_pos[1] + bin_half_world_y
-BIN_MARGIN = 0.07   # 7 cm clearance
+BIN_MARGIN = 0.085   # 8 cm clearance
 
 print(f"[Bin] Footprint: X=[{BIN_X_MIN:.3f}, {BIN_X_MAX:.3f}], Y=[{BIN_Y_MIN:.3f}, {BIN_Y_MAX:.3f}]")
 
@@ -289,7 +288,7 @@ for episode_idx in range(NUM_EPISODES):
     # Close gripper
     robot.operate_gripper(close=True)
     gripper_cmd = 1.0
-    settle_steps_grip = int(0.3 / control_dt)
+    settle_steps_grip = int(0.5 / control_dt)
     for _ in range(settle_steps_grip):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)

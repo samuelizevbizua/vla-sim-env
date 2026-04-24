@@ -21,12 +21,12 @@ CAM3_RECEIVER = "cam3_receiver"
 
 SIM_TABLE_DEF = "SIM_TABLE"
 
-ARM_MOTOR_VELOCITY = 0.35
-GRIPPER_MOTOR_VELOCITY = 1.5
-GRIPPER_TARGET_HOVER_HEIGHT = -0.002
-GRIPPER_LIFT_HEIGHT = 0.15
+ARM_MOTOR_VELOCITY = 0.2
+GRIPPER_MOTOR_VELOCITY = 0.5
+GRIPPER_TARGET_HOVER_HEIGHT = -0.00155
+GRIPPER_LIFT_HEIGHT = 0.2
 GRIPPER_TARGET_ANGLE_OPEN = 0.0
-GRIPPER_TARGET_ANGLE_CLOSED = 0.7
+GRIPPER_TARGET_ANGLE_CLOSED = 0.65
 
 # -- HUGGING FACE AND PROMPT CONFIG ---
 HF_TOKEN = os.getenv("HF_TOKEN")
@@ -34,8 +34,8 @@ HF_BASE_URL = os.getenv("HF_BASE_URL")
 
 VLM_PATH = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
 VLM_USER_PROMPTS = {
-    "baseline": "Identify the blue cube and the green crate. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
-    "nudge_obj": "Identify the blue cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "baseline": "Identify the red cube and the green crate. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "nudge_obj": "Identify the red cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
     "nudge_bin": "Identify the green crate. Return JSON: {'x': float, 'y': float, 'found': bool}",
     "ood_test": "Identify the jam jar and the green crate. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
@@ -44,8 +44,8 @@ VLA_PATH = "lerobot/smolvla_base"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 INFERENCE_EVERY_N = 5
 VLA_USER_PROMPTS = {
-    "baseline": "pick up the blue cube and put it in the green crate",
-    "nudge": "pick up the blue cube and put it in the green crate",
+    "baseline": "pick up the red cube and put it in the green crate",
+    "nudge": "pick up the red cube and put it in the green crate",
     "ood": "pick up the jam jar and put it in the green crate"
 }
 
