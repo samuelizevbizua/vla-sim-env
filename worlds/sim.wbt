@@ -10,7 +10,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR5e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/balls/protos/Ball.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/VarnishedPine.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/RoughOak.proto"
 EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
@@ -38,7 +38,7 @@ TexturedBackground {
   luminosity 2.5
 }
 DirectionalLight {
-  intensity 0.7
+  intensity 0.9
   castShadows TRUE
 }
 Floor {
@@ -51,11 +51,10 @@ Floor {
 DEF SIM_TABLE Table {
   translation 0 0.52 0
   name "Table"
-  size 0.8 0.5 0.7
-  trayAppearance VarnishedPine {
-    colorOverride 0.921569 0.929412 0.929412
+  size 0.8 0.7 0.7
+  trayAppearance RoughOak {
     textureTransform TextureTransform {
-      scale 10 10
+      scale 15 15
     }
     IBLStrength 2
   }
@@ -121,8 +120,8 @@ Robot {
     DEF CAM1 Camera {
       rotation 0.577656895078166 -0.5771968951617173 -0.5771968951617173 -2.093935307179586
       name "cam1"
-      fieldOfView 0.45
-      width 720
+      fieldOfView 0.47
+      width 640
       height 480
     }
   ]
@@ -130,7 +129,7 @@ Robot {
   controller "cam1_controller"
 }
 Robot {
-  translation -0.66 0.12 1.6
+  translation -0.6 0.2 1.6
   children [
     Emitter {
       name "cam2_emitter"
@@ -141,18 +140,18 @@ Robot {
       channel 4
     }
     DEF CAM2 Camera {
-      rotation -0.518322788007578 0.59244375769233 0.6167267477606619 1.06376
+      rotation -0.25483684750962604 0.8127175136825825 0.5239736864623614 0.967409
       name "cam2"
       fieldOfView 0.9
-      width 720
+      width 640
       height 480
       near 0.05
     }
     DEF CAM2_DEPTH RangeFinder {
-      rotation -0.518322788007578 0.59244375769233 0.6167267477606619 1.06376
+      rotation -0.25483684750962604 0.8127175136825825 0.5239736864623614 0.967409
       name "cam2_depth"
       fieldOfView 0.9
-      width 720
+      width 640
       height 480
       near 0.05
       minRange 0.1
@@ -184,8 +183,8 @@ UR5e {
           rotation 2.173249999993123e-06 1.2671299999959905e-06 0.9999999999968356 1.309
           name "cam3"
           fieldOfView 1.2
-          width 512
-          height 512
+          width 640
+          height 480
         }
       ]
       name "wrist_camera"

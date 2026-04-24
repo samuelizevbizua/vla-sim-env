@@ -1,7 +1,7 @@
 """
 Dense recording – only saves successful episodes (cube in bin).
-Automatically discards failures. Resumes from last saved episode.
-Bin avoidance uses actual crate dimensions.
+Automatically discards failures. Bin avoidance uses actual crate dimensions.
+All cameras: 640x480 (matching Berkeley UR5 for later merge).
 """
 
 import os
@@ -40,15 +40,16 @@ print(f"[INFO] Webots timestep = {timestep} ms → recording at {actual_fps} FPS
 
 table_node = supervisor.getFromDef(SIM_TABLE_DEF)
 table_pos = table_node.getPosition()
-TABLE_HEIGHT = table_node.getField("size").getSFVec3f()[2]
+table_size = table_node.getField("size").getSFVec3f()   # (width, depth, height)
+TABLE_HEIGHT = table_size[2]
 HOME_POS = [float(table_pos[0]), float(table_pos[1]), TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]
 
-# Table dimensions: size 0.8 (X) by 0.5 (Y), centered at (0, 0.52)
-TABLE_X_MIN = table_pos[0] - 0.4      # -0.4
-TABLE_X_MAX = table_pos[0] + 0.4      #  0.4
-TABLE_Y_MIN = table_pos[1] - 0.25     #  0.27
-TABLE_Y_MAX = table_pos[1] + 0.25     #  0.77
-SAFETY_MARGIN = 0.05    # 5 cm from table edges
+# Table bounds (world coordinates)
+TABLE_X_MIN = table_pos[0] - table_size[0]/2
+TABLE_X_MAX = table_pos[0] + table_size[0]/2
+TABLE_Y_MIN = table_pos[1] - table_size[1]/2
+TABLE_Y_MAX = table_pos[1] + table_size[1]/2
+SAFETY_MARGIN = 0.07   # 5 cm from table edges
 
 # ========== Cameras ==========
 CHANNELS = 3
@@ -75,21 +76,21 @@ depth_receiver.enable(timestep)
 
 target_node = supervisor.getFromDef("OBJ1")
 dest_node = supervisor.getFromDef("BIN")
-# Save safe default cube position (centre of table, avoid bin area)
-DEFAULT_CUBE_POS = [0.2, 0.55, 0.72]   # X: 0.2, Y: 0.55, Z: 0.72
+DEFAULT_CUBE_POS = target_node.getPosition()   # will be overwritten but kept
 DEFAULT_CUBE_ROT = target_node.getField("rotation").getSFRotation()
+# Safe default position (centre of table, avoid bin)
+DEFAULT_CUBE_POS = [0.2, 0.55, DEFAULT_CUBE_POS[2]]   # Z from original
 
-# ========== Bin world bounding box (axis-aligned) ==========
+# ========== Bin world bounding box ==========
 bin_pos = dest_node.getPosition()
-bin_size = dest_node.getField("size").getSFVec3f()      # (width, depth, height)
-# Bin rotation is 0 0 -1 0 (no rotation), so width along X, depth along Y
+bin_size = dest_node.getField("size").getSFVec3f()   # (width, depth, height)
 bin_half_world_x = bin_size[0] / 2.0
 bin_half_world_y = bin_size[1] / 2.0
 BIN_X_MIN = bin_pos[0] - bin_half_world_x
 BIN_X_MAX = bin_pos[0] + bin_half_world_x
 BIN_Y_MIN = bin_pos[1] - bin_half_world_y
 BIN_Y_MAX = bin_pos[1] + bin_half_world_y
-BIN_MARGIN = 0.07   # extra clearance around bin (7 cm)
+BIN_MARGIN = 0.07   # 7 cm clearance
 
 print(f"[Bin] Footprint: X=[{BIN_X_MIN:.3f}, {BIN_X_MAX:.3f}], Y=[{BIN_Y_MIN:.3f}, {BIN_Y_MAX:.3f}]")
 
@@ -103,10 +104,8 @@ def reset_cube_to_default():
 
 def is_cube_safe(z_threshold=0.69):
     pos = target_node.getPosition()
-    # Z check: cube should be above table (not fallen)
     if pos[2] < z_threshold:
         return False
-    # XY check: cube must be within table bounds minus safety margin
     if not (TABLE_X_MIN + SAFETY_MARGIN < pos[0] < TABLE_X_MAX - SAFETY_MARGIN):
         return False
     if not (TABLE_Y_MIN + SAFETY_MARGIN < pos[1] < TABLE_Y_MAX - SAFETY_MARGIN):
@@ -114,7 +113,6 @@ def is_cube_safe(z_threshold=0.69):
     return True
 
 def randomize_cube_pose(avoid_bin=True):
-    # Safe range inside table with margin
     x_min, x_max = TABLE_X_MIN + SAFETY_MARGIN, TABLE_X_MAX - SAFETY_MARGIN
     y_min, y_max = TABLE_Y_MIN + SAFETY_MARGIN, TABLE_Y_MAX - SAFETY_MARGIN
 
@@ -122,12 +120,10 @@ def randomize_cube_pose(avoid_bin=True):
         for _ in range(100):
             x = random.uniform(x_min, x_max)
             y = random.uniform(y_min, y_max)
-            # Check if cube's center is outside the expanded bin rectangle
             if (x < BIN_X_MIN - BIN_MARGIN or x > BIN_X_MAX + BIN_MARGIN or
                 y < BIN_Y_MIN - BIN_MARGIN or y > BIN_Y_MAX + BIN_MARGIN):
                 break
         else:
-            # Fallback: place far from bin (top‑right area)
             x = 0.25
             y = 0.60
             print("[Warning] Could not find safe cube position, using fallback.")
@@ -135,7 +131,7 @@ def randomize_cube_pose(avoid_bin=True):
         x = random.uniform(x_min, x_max)
         y = random.uniform(y_min, y_max)
 
-    z = DEFAULT_CUBE_POS[2]   # 0.72 (table top + cube half height)
+    z = DEFAULT_CUBE_POS[2]
     target_node.getField("translation").setSFVec3f([x, y, z])
     yaw = random.uniform(-3.14159, 3.14159)
     target_node.getField("rotation").setSFRotation([0, 0, 1, yaw])
@@ -248,7 +244,6 @@ for episode_idx in range(NUM_EPISODES):
         if frame:
             dataset.add_frame(frame)
             frame_count += 1
-    # Settle after home move (0.4 seconds)
     settle_steps = int(0.4 / control_dt)
     for _ in range(settle_steps):
         supervisor.step(timestep)
@@ -257,13 +252,12 @@ for episode_idx in range(NUM_EPISODES):
             dataset.add_frame(frame)
             frame_count += 1
 
-    robot.operate_gripper(close=False)   # original blocking open
+    robot.operate_gripper(close=False)
     gripper_cmd = 0.0
     success = False
 
     # ---- PICKING phase ----
     cube_pos = target_node.getPosition()
-    # Approach
     approach_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(approach_pos)
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
@@ -271,7 +265,6 @@ for episode_idx in range(NUM_EPISODES):
         if frame:
             dataset.add_frame(frame)
             frame_count += 1
-    # Settle after approach
     for _ in range(settle_steps):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)
@@ -279,7 +272,6 @@ for episode_idx in range(NUM_EPISODES):
             dataset.add_frame(frame)
             frame_count += 1
 
-    # Lower to hover
     hover_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_TARGET_HOVER_HEIGHT]
     robot.move_to_world_target_async(hover_pos)
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
@@ -287,7 +279,6 @@ for episode_idx in range(NUM_EPISODES):
         if frame:
             dataset.add_frame(frame)
             frame_count += 1
-    # Settle after hover
     for _ in range(settle_steps):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)
@@ -295,19 +286,17 @@ for episode_idx in range(NUM_EPISODES):
             dataset.add_frame(frame)
             frame_count += 1
 
-    # Close gripper (original blocking method – fixed time wait)
+    # Close gripper
     robot.operate_gripper(close=True)
     gripper_cmd = 1.0
-    # Record a few frames after closing (settle)
-    settle_steps = int(0.3 / control_dt)
-    for _ in range(settle_steps):
+    settle_steps_grip = int(0.3 / control_dt)
+    for _ in range(settle_steps_grip):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)
         if frame:
             dataset.add_frame(frame)
             frame_count += 1
 
-    # Lift
     lift_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(lift_pos)
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
@@ -315,7 +304,6 @@ for episode_idx in range(NUM_EPISODES):
         if frame:
             dataset.add_frame(frame)
             frame_count += 1
-    # Settle after lift
     for _ in range(settle_steps):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)
@@ -332,7 +320,6 @@ for episode_idx in range(NUM_EPISODES):
         if frame:
             dataset.add_frame(frame)
             frame_count += 1
-    # Settle after moving above bin
     for _ in range(settle_steps):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)
@@ -340,10 +327,9 @@ for episode_idx in range(NUM_EPISODES):
             dataset.add_frame(frame)
             frame_count += 1
 
-    # Open gripper (original blocking)
     robot.operate_gripper(close=False)
     gripper_cmd = 0.0
-    for _ in range(settle_steps):
+    for _ in range(settle_steps_grip):
         supervisor.step(timestep)
         frame = capture_frame(gripper_cmd, success, done_flag=False)
         if frame:
@@ -352,7 +338,7 @@ for episode_idx in range(NUM_EPISODES):
 
     # Check success
     cube_final_pos = target_node.getPosition()
-    if ((cube_final_pos[0] - bin_pos[0])**2 + (cube_final_pos[1] - bin_pos[1])**2) < 0.15**2:
+    if ((cube_final_pos[0] - bin_pos[0])**2 + (cube_final_pos[1] - bin_pos[1])**2) < 0.1**2:  # bin half width 0.1
         success = True
         successes += 1
     else:
