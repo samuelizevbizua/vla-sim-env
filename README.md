@@ -42,3 +42,5 @@ Recommended setup:
 - Copy that URL into the `VLA_API_URL` setting in [config.py](config.py) (or your `.env`, if you externalise it) so the simulation can call the remote SmolVLA server instead of a local instance.
 
 This avoids downloading the model on your local machine while keeping the rest of the project runnable from your PC.
+
+RUNPOD Template for current working pod - https://console.runpod.io/deploy?template=vf7q8wckgm&ref=jr9ndf5k
