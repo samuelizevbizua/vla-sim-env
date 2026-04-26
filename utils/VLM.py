@@ -1,7 +1,7 @@
 import json
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from config import HF_API_TOKEN, HF_BASE_URL, VLM_PATH
+from config import HF_TOKEN, HF_BASE_URL, VLM_PATH
 
 MODEL_CONFIG = {
     "temperature": 0.0,
@@ -18,7 +18,7 @@ VLM_SYSTEM_PROMPT = (
 
 LLM = ChatOpenAI(
     model=VLM_PATH,
-    api_key=HF_API_TOKEN,
+    api_key=HF_TOKEN,
     base_url=HF_BASE_URL,
     temperature=MODEL_CONFIG["temperature"],
     max_tokens=MODEL_CONFIG["max_tokens"],

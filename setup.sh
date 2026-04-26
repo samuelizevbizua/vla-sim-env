@@ -14,12 +14,16 @@ fi
 # Remove existing pycache directories
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
-# Create a fresh virtual environment with Python 3.11
-python3.11 -m venv .venv
+# Create a fresh virtual environment with Python 3.12
+python3.12 -m venv .venv
 
 # Activate the virtual environment
-# shellcheck source=/dev/null
 source .venv/bin/activate
+
+# Upgrade pip
+pip install --upgrade pip
 
 # Install Python dependencies
 pip install -r requirements.txt
+
+echo "🎉 Setup complete."
