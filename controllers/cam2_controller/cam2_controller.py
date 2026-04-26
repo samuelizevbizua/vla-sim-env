@@ -3,7 +3,6 @@ os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Robot
-import cv2
 import numpy as np
 from config import CAM2_EMITTER, CAM2_NAME
 

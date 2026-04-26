@@ -25,18 +25,7 @@ source .venv/bin/activate
 # Upgrade pip
 pip install --upgrade pip
 
-# Install Python dependencies from requirements.txt
+# Install Python dependencies
 pip install -r requirements.txt
-
-# ===== Install LeRobot in the same environment =====
-if [ -d "lerobot" ]; then
-  rm -rf lerobot
-fi
-
-# Clone the LeRobot repository and install it in editable mode with extra dependencies
-git clone https://github.com/huggingface/lerobot.git
-cd lerobot
-pip install -e ".[smolvla,dataset,viz]"
-cd ..
 
 echo "🎉 Setup complete."
