@@ -1,5 +1,5 @@
 import numpy as np
-from ur_analytic_ik import ur5e as ur10e
+from ur_analytic_ik import ur5e
 from config import GRIPPER_TARGET_ANGLE_OPEN, GRIPPER_TARGET_ANGLE_CLOSED,  ARM_MOTOR_VELOCITY, GRIPPER_MOTOR_VELOCITY
 
 class IK_Solver:
@@ -42,25 +42,34 @@ class IK_Solver:
         target_pose[:3, :3] = base_orientation.dot(twist_matrix)
 
         # Solve using the closest joint configuration AND the gripper length offset
-        solution = ur10e.inverse_kinematics_closest_with_tcp(
-            target_pose, self.tcp_transform, *current_joints
+        solution = ur5e.inverse_kinematics_closest_with_tcp(
+            target_pose,
+            self.tcp_transform,
+            *current_joints
         )
+
+        # Return the single best solution
         if solution is not None and len(solution) > 0:
             return np.array(solution).flatten().tolist()
         else:
             print("Target is physically out of reach!")
             return None
 
-class UR10e_Robot:
+class URe_Robot:
     def __init__(self, supervisor):
         self.supervisor = supervisor
         self.timestep = int(supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getSelf()
+        
+        # 1. Setup Math Solver
         self.solver = IK_Solver(gripper_length=0.16)
-        self._target_joints = None
+        
+        # 2. Setup Hardware
         self._init_arm_hardware()
         self._init_gripper_hardware()
         self._init_matrices()
+        
+        # 3. Warm up sensors
         for _ in range(5):
             self.supervisor.step(self.timestep)
 
@@ -167,30 +176,15 @@ class UR10e_Robot:
             self._wait_to_arrive([target_angle]*6, is_gripper=True)
         else:
             self._wait_to_arrive([-GRIPPER_TARGET_ANGLE_OPEN]*6, is_gripper=True)
-
-    def move_to_world_target_async(self, target_pos_world):
-        """Same as move_to_world_target but without waiting and without settle_time."""
-        robot_pos_world = np.array(self.robot_node.getPosition())
-        robot_rot_world = np.array(self.robot_node.getOrientation()).reshape(3, 3)
-
-        target_vector_world = target_pos_world - robot_pos_world
-        target_pos_local = robot_rot_world.T.dot(target_vector_world)
-        ik_target_local = self.rotation_matrix.dot(target_pos_local)
-
-        current_joints = [s.getValue() for s in self.sensors]
-        joint_angles = self.solver.get_link_pos(ik_target_local.tolist(), current_joints)
-
-        if joint_angles is not None:
-            for i in range(6):
-                self.motors[i].setPosition(joint_angles[i])
-            self._target_joints = joint_angles   # store for later check
-        else:
-            print("      -> [Error] Target out of physical reach.")
-            self._target_joints = None
-
-    def is_target_reached(self, tolerance=0.04):
-        if self._target_joints is None:
-            return True
-        current = [s.getValue() for s in self.sensors]
-        error = max(abs(np.array(current) - np.array(self._target_joints)))
-        return error < tolerance
+    
+    def command_joint_positions(self, joint_angles, gripper_cmd):
+        """
+        Directly set joint positions (6 joints) and gripper command.
+        Used when the policy outputs joint angles directly.
+        """
+        for i in range(6):
+            self.motors[i].setPosition(joint_angles[i])
+        # Gripper: angle 0 = open, 1 = closed (scale to target angle)
+        target_gripper_angle = GRIPPER_TARGET_ANGLE_CLOSED if gripper_cmd > 0.5 else GRIPPER_TARGET_ANGLE_OPEN
+        for motor in self.gripper_motors:
+            motor.setPosition(target_gripper_angle)

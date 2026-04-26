@@ -14,6 +14,10 @@ EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
 WorldInfo {
+  info [
+    ""
+  ]
+  title "URe Demo"
   basicTimeStep 16
   physicsDisableTime 3
   contactProperties [
@@ -27,8 +31,8 @@ WorldInfo {
   ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation -0.26986069549876573 0.6918065351033879 0.669760347447628 1.0498835620908684
-  position -1.2952813844190905 -0.512201689611729 2.3312894380164373
+  orientation 0.2417584480377113 0.5102404069246592 -0.8253530032318023 1.047696016664978
+  position -1.178861750412072 1.9324584818822106 2.1978490698148017
   ambientOcclusionRadius 1
 }
 TexturedBackground {
@@ -129,21 +133,9 @@ Robot {
       name "cam2_emitter"
       channel 2
     }
-    Emitter {
-      name "cam2_depth_emitter"
-      channel 4
-    }
-    DEF CAM2 Camera {
+    DEF CAM2 RangeFinder {
       rotation -0.25483684750962604 0.8127175136825825 0.5239736864623614 0.967409
       name "cam2"
-      fieldOfView 0.9
-      width 640
-      height 480
-      near 0.05
-    }
-    DEF CAM2_DEPTH RangeFinder {
-      rotation -0.25483684750962604 0.8127175136825825 0.5239736864623614 0.967409
-      name "cam2_depth"
       fieldOfView 0.9
       width 640
       height 480
@@ -158,7 +150,7 @@ Robot {
 }
 UR5e {
   translation 0 0 0.7
-  controller "record_controller"
+  controller "ik_controller"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
@@ -192,11 +184,6 @@ UR5e {
     Receiver {
       name "cam2_receiver"
       channel 2
-      bufferSize 2000000
-    }
-    Receiver {
-      name "cam2_depth_receiver"
-      channel 4
       bufferSize 2000000
     }
     Receiver {

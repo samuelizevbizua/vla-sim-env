@@ -6,15 +6,14 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # world parameters
 CAM1_NAME, CAM1_DEF= "cam1", "CAM1" # overhead camera node
-CAM2_NAME, CAM2_DEF = "cam2", "CAM2" # angled side camera node
+CAM2_NAME, CAM2_DEF = "cam2", "CAM2" # angled side camera node -- provides depth data
 CAM3_NAME, CAM3_DEF = "cam3", "CAM3" # wrist camera node
 
 CAM1_EMITTER = "cam1_emitter"
 CAM1_RECEIVER = "cam1_receiver"
 
-CAM2_EMITTER, CAM2_DEPTH_EMITTER = "cam2_emitter", "cam2_depth_emitter"
-CAM2_RECEIVER, CAM2_DEPTH_RECEIVER = "cam2_receiver", "cam2_depth_receiver"
-CAM2_DEPTH_NAME, CAM2_DEPTH_DEF = "cam2_depth", "CAM2_DEPTH"
+CAM2_EMITTER = "cam2_emitter"
+CAM2_RECEIVER = "cam2_receiver"
 
 CAM3_EMITTER = "cam3_emitter"
 CAM3_RECEIVER = "cam3_receiver"
@@ -72,7 +71,7 @@ def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False, format="base64"):
             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     return None
 
-def GET_RECEIVER_DEPTH_IMAGE(receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX_DEPTH):
+def _GET_RECEIVER_DEPTH_IMAGE(receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX_DEPTH):
     last_packet = None
     while receiver.getQueueLength() > 0:
         last_packet = receiver.getBytes()
@@ -84,6 +83,16 @@ def GET_RECEIVER_DEPTH_IMAGE(receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX
         depth_rgb = np.stack([depth_norm, depth_norm, depth_norm], axis=-1)
         depth_rgb = (depth_rgb * 255).astype(np.uint8)
         return depth_rgb
+    return None
+
+def GET_RECEIVER_DEPTH_BASE64(receiver, height, width, min_depth, max_depth):
+    """
+    Returns depth image as base64 encoded JPEG string.
+    """
+    rgb_img = _GET_RECEIVER_DEPTH_IMAGE(receiver, height, width, min_depth, max_depth)
+    if rgb_img is not None:
+        _, buffer = cv2.imencode('.jpg', cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR))
+        return base64.b64encode(buffer).decode('utf-8')
     return None
 
 def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):

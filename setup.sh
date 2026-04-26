@@ -11,11 +11,6 @@ if [ -d ".venv" ]; then
   rm -rf .venv
 fi
 
-# Remove existing recordings directory for a clean setup
-if [ -d "recorded_dataset" ]; then
-  rm -rf recorded_dataset
-fi
-
 # Remove existing pycache directories
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
@@ -28,18 +23,7 @@ source .venv/bin/activate
 # Upgrade pip
 pip install --upgrade pip
 
-# Install Python dependencies from requirements.txt
+# Install Python dependencies
 pip install -r requirements.txt
-
-# ===== Install LeRobot in the same environment =====
-if [ -d "lerobot" ]; then
-  rm -rf lerobot
-fi
-
-# Clone the LeRobot repository and install it in editable mode with extra dependencies
-git clone https://github.com/huggingface/lerobot.git
-cd lerobot
-pip install -e ".[smolvla,dataset,viz]"
-cd ..
 
 echo "🎉 Setup complete."

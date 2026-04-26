@@ -1,16 +1,16 @@
 """
 This controller implements a standard inverse kinematics system for the UR10e robot in Webots.
-It's main function is to test inverse kinematics and the robot's functions via the UR10e_Robot class, without any AI or high-level decision making. 
+It's main function is to test inverse kinematics and the robot's functions via the URe_Robot class, without any AI or high-level decision making. 
 """
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Supervisor
-from utils.UR import UR10e_Robot
+from utils.UR import URe_Robot
 from config import GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT
 
 supervisor = Supervisor()
-robot = UR10e_Robot(supervisor)
+robot = URe_Robot(supervisor)
 
 target = supervisor.getFromDef("OBJ1") #OBJ1 or OBJ2
 dest = supervisor.getFromDef("BIN") 
