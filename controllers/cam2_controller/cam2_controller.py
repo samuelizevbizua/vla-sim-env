@@ -14,7 +14,7 @@ camera = robot.getDevice(CAM2_NAME)
 camera.enable(timestep)
 emitter = robot.getDevice(CAM2_EMITTER)
 
-print(f"[Cam2] RGB DEPTH emitter channel: {emitter.getChannel()}")
+print(f"[Camera] RGB DEPTH emitter channel: {emitter.getChannel()}")
 
 while robot.step(timestep) != -1:
     # --- Send depth data (raw float32, uncompressed) ---

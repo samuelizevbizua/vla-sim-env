@@ -33,19 +33,19 @@ HF_BASE_URL = os.getenv("HF_BASE_URL")
 
 VLM_PATH = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
 VLM_USER_PROMPTS = {
-    "baseline": "Identify the red cube and the green crate. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "baseline": "Identify the red cube and the green bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
     "nudge_obj": "Identify the red cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge_bin": "Identify the green crate. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "ood_test": "Identify the jam jar and the green crate. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
+    "nudge_bin": "Identify the green bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "ood_test": "Identify the duck and the green bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
 VLA_PATH = "lerobot/smolvla_base"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 INFERENCE_EVERY_N = 5
 VLA_USER_PROMPTS = {
-    "baseline": "pick up the red cube and put it in the green crate",
-    "nudge": "pick up the red cube and put it in the green crate",
-    "ood": "pick up the jam jar and put it in the green crate"
+    "baseline": "pick up the red cube and put it in the green bin",
+    "nudge": "pick up the red cube and put it in the green bin",
+    "ood": "pick up the jam jar and put it in the green bin"
 }
 
 TARGET_NUDGES = 1
@@ -105,3 +105,23 @@ def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, 
     world_x = float(round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3))
     world_y = float(round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3))
     return world_x, world_y
+
+ACTION_STD = [
+    0.38376863449487764,
+    0.27165019367589216,
+    0.4432032971941338,
+    0.24501470104936277,
+    6.703042191700911e-08,
+    0.38361808193022623,
+    0.495171386915027
+]
+
+ACTION_MEAN = [
+    1.4142366058399456,
+    -1.065433056151644,
+    1.3003412158654786,
+    1.3358856972185498,
+    1.5708003423550607,
+    -1.7273641064678864,
+    0.4306797588350734
+]
