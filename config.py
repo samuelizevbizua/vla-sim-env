@@ -6,15 +6,14 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # world parameters
 CAM1_NAME, CAM1_DEF= "cam1", "CAM1" # overhead camera node
-CAM2_NAME, CAM2_DEF = "cam2", "CAM2" # angled side camera node
+CAM2_NAME, CAM2_DEF = "cam2", "CAM2" # angled side camera node -- provides depth data
 CAM3_NAME, CAM3_DEF = "cam3", "CAM3" # wrist camera node
 
 CAM1_EMITTER = "cam1_emitter"
 CAM1_RECEIVER = "cam1_receiver"
 
-CAM2_EMITTER, CAM2_DEPTH_EMITTER = "cam2_emitter", "cam2_depth_emitter"
-CAM2_RECEIVER, CAM2_DEPTH_RECEIVER = "cam2_receiver", "cam2_depth_receiver"
-CAM2_DEPTH_NAME, CAM2_DEPTH_DEF = "cam2_depth", "CAM2_DEPTH"
+CAM2_EMITTER = "cam2_emitter"
+CAM2_RECEIVER = "cam2_receiver"
 
 CAM3_EMITTER = "cam3_emitter"
 CAM3_RECEIVER = "cam3_receiver"
@@ -34,19 +33,19 @@ HF_BASE_URL = os.getenv("HF_BASE_URL")
 
 VLM_PATH = "Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud"
 VLM_USER_PROMPTS = {
-    "baseline": "Identify the red cube and the green crate. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
+    "baseline": "Identify the red cube and the green bin. Return a JSON object with these exact keys: 'cube_x_norm', 'cube_y_norm', 'bin_x_norm', 'bin_y_norm'.",
     "nudge_obj": "Identify the red cube. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "nudge_bin": "Identify the green crate. Return JSON: {'x': float, 'y': float, 'found': bool}",
-    "ood_test": "Identify the jam jar and the green crate. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
+    "nudge_bin": "Identify the green bin. Return JSON: {'x': float, 'y': float, 'found': bool}",
+    "ood_test": "Identify the duck and the green bin. Return a JSON object with these exact keys: 'target_x_norm', 'target_y_norm', 'bin_x_norm', 'bin_y_norm'."
 }
 
 VLA_PATH = "lerobot/smolvla_base"
 VLA_API_URL = "https://perinephral-catechisable-mirta.ngrok-free.dev"
 INFERENCE_EVERY_N = 5
 VLA_USER_PROMPTS = {
-    "baseline": "pick up the red cube and put it in the green crate",
-    "nudge": "pick up the red cube and put it in the green crate",
-    "ood": "pick up the jam jar and put it in the green crate"
+    "baseline": "pick up the red cube and put it in the green bin",
+    "nudge": "pick up the red cube and put it in the green bin",
+    "ood": "pick up the duck and put it in the green bin"
 }
 
 TARGET_NUDGES = 1
@@ -86,6 +85,16 @@ def GET_RECEIVER_DEPTH_IMAGE(receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX
         return depth_rgb
     return None
 
+def GET_RECEIVER_DEPTH_BASE64(receiver, height, width, min_depth, max_depth):
+    """
+    Returns depth image as base64 encoded JPEG string.
+    """
+    rgb_img = GET_RECEIVER_DEPTH_IMAGE(receiver, height, width, min_depth, max_depth)
+    if rgb_img is not None:
+        _, buffer = cv2.imencode('.jpg', cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR))
+        return base64.b64encode(buffer).decode('utf-8')
+    return None
+
 def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):
     _height = CAM_Z - TABLE_HEIGHT
     _ground_w = 2.0 * _height * np.tan(CAM_FOV / 2.0)
@@ -96,3 +105,5 @@ def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, 
     world_x = float(round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3))
     world_y = float(round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3))
     return world_x, world_y
+
+BASE_HOME_JOINTS = [1.2556, -1.2569, 1.5336, 1.2941, 1.5708, -1.8016]

@@ -9,7 +9,7 @@ os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Supervisor
-from utils.UR import UR10e_Robot
+from utils.UR import URe_Robot
 from utils.VLA import ACTION
 # from utils.TEST import LOG_BASELINE 
 
@@ -21,7 +21,7 @@ from config import (
 
 supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
-robot = UR10e_Robot(supervisor)
+robot = URe_Robot(supervisor)
 
 # receiver = supervisor.getDevice(CAM2_RECEIVER)
 receiver = supervisor.getDevice(CAM1_RECEIVER)
