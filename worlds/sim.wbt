@@ -4,12 +4,11 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/RoughPolymer.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Marble.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/PlasticCrate.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR5e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/RoughOak.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/VarnishedPine.proto"
 EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
@@ -31,16 +30,17 @@ WorldInfo {
   ]
 }
 DEF VIEWPOINT Viewpoint {
-  orientation 0.2417584480377113 0.5102404069246592 -0.8253530032318023 1.047696016664978
-  position -1.178861750412072 1.9324584818822106 2.1978490698148017
+  orientation 0.22704020084542337 0.23321561768019508 -0.9455491647027746 1.6057291745766118
+  position -0.0601827528911881 2.6406428819846806 2.040676060114131
   ambientOcclusionRadius 1
 }
 TexturedBackground {
   texture "empty_office"
   luminosity 2.5
+  skybox FALSE
 }
 DirectionalLight {
-  intensity 0.9
+  intensity 0.5
   castShadows TRUE
 }
 Floor {
@@ -54,34 +54,31 @@ DEF SIM_TABLE Table {
   translation 0 0.43 0
   name "Table"
   size 0.8 0.6 0.7
-  trayAppearance RoughOak {
+  feetSize 0.05 0.05
+  trayAppearance VarnishedPine {
     textureTransform TextureTransform {
-      scale 15 15
+      scale 2 2
     }
-    IBLStrength 2
   }
 }
 Table {
-  translation 0.01 0 0
   name "robo_table"
   size 0.2 0.2 0.7
-  feetSize 0.2 0.2
-  trayAppearance Parquetry {
-    type "dark strip"
-    colorOverride 0.933333 0.933333 0.92549
+  feetSize 0.05 0.05
+  trayAppearance Marble {
   }
-  legAppearance BrushedAluminium {
+  legAppearance Marble {
     colorOverride 0.333 0.341 0.325
   }
 }
 DEF BIN PlasticCrate {
-  translation -0.27 0.54 0.7
+  translation -0.24 0.49 0.7
   rotation 0 0 -1 0
-  size 0.2 0.2 0.07
+  size 0.2 0.2 0.05
   color 0 0.8 0
 }
 DEF OBJ1 Solid {
-  translation -0.037449 0.4468 0.72
+  translation 0.242551 0.5968 0.72
   rotation 2.01372e-17 1.13924e-17 1 -1.5707953071795862
   children [
     Shape {
@@ -105,7 +102,7 @@ DEF OBJ2 RubberDuck {
   scale 0.6
 }
 Wrench {
-  translation 0.200699 0.517583 0.700002
+  translation 0.330599 0.442583 0.700002
   rotation -3.745872498823644e-05 9.709278782946421e-06 0.9999999992512869 1.0471999830396552
 }
 Robot {
@@ -127,22 +124,18 @@ Robot {
   controller "cam1_controller"
 }
 Robot {
-  translation -0.6 0.2 1.5
+  translation 0 1.5 1.2
   children [
     Emitter {
       name "cam2_emitter"
       channel 2
     }
-    DEF CAM2 RangeFinder {
-      rotation -0.25483684750962604 0.8127175136825825 0.5239736864623614 0.967409
+    DEF CAM2 Camera {
+      rotation -0.12942794302188446 -0.12942894302144423 0.9831055672070398 -1.5878353071795859
       name "cam2"
-      fieldOfView 0.9
+      fieldOfView 0.85
       width 640
       height 480
-      near 0.05
-      minRange 0.1
-      maxRange 5
-      resolution 0.01
     }
   ]
   name "cam2_rig"
@@ -155,18 +148,17 @@ UR5e {
   selfCollision FALSE
   toolSlot [
     Robotiq2f85Gripper {
-      rotation 1 0 0 -1.5707953071795862
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
     }
     Robot {
-      translation -0.04 0.04 0
-      rotation -0.2588198926055145 -0.9659255991997304 1.5204193691186013e-06 1.57079
+      translation 0 0 -0.05
       children [
         Emitter {
           name "cam3_emitter"
           channel 3
         }
         DEF CAM3 Camera {
-          rotation 2.173249999993123e-06 1.2671299999959905e-06 0.9999999999968356 1.309
+          rotation 0.7071037811809895 0.7071097811791327 -5.887068178198917e-07 -3.1415853071795863
           name "cam3"
           fieldOfView 1.2
           width 640

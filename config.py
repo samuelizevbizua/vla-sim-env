@@ -20,7 +20,7 @@ CAM3_RECEIVER = "cam3_receiver"
 
 SIM_TABLE_DEF = "SIM_TABLE"
 
-ARM_MOTOR_VELOCITY = 0.2
+ARM_MOTOR_VELOCITY = 0.3
 GRIPPER_MOTOR_VELOCITY = 0.5
 GRIPPER_TARGET_HOVER_HEIGHT = -0.00155
 GRIPPER_LIFT_HEIGHT = 0.2
@@ -71,30 +71,6 @@ def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False, format="base64"):
             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     return None
 
-def GET_RECEIVER_DEPTH_IMAGE(receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX_DEPTH):
-    last_packet = None
-    while receiver.getQueueLength() > 0:
-        last_packet = receiver.getBytes()
-        receiver.nextPacket()
-    if last_packet:
-        depth_img = np.frombuffer(last_packet, dtype=np.float32).reshape((DEPTH_HEIGHT, DEPTH_WIDTH))
-        depth_norm = (depth_img - MIN_DEPTH) / (MAX_DEPTH - MIN_DEPTH)
-        depth_norm = np.clip(depth_norm, 0, 1)
-        depth_rgb = np.stack([depth_norm, depth_norm, depth_norm], axis=-1)
-        depth_rgb = (depth_rgb * 255).astype(np.uint8)
-        return depth_rgb
-    return None
-
-def GET_RECEIVER_DEPTH_BASE64(receiver, height, width, min_depth, max_depth):
-    """
-    Returns depth image as base64 encoded JPEG string.
-    """
-    rgb_img = GET_RECEIVER_DEPTH_IMAGE(receiver, height, width, min_depth, max_depth)
-    if rgb_img is not None:
-        _, buffer = cv2.imencode('.jpg', cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR))
-        return base64.b64encode(buffer).decode('utf-8')
-    return None
-
 def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z):
     _height = CAM_Z - TABLE_HEIGHT
     _ground_w = 2.0 * _height * np.tan(CAM_FOV / 2.0)
@@ -105,5 +81,3 @@ def PIXEL_TO_WORLD(px, py, TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, 
     world_x = float(round(CAM_X + ((px * CAM_WIDTH) - cx) * MPP_X, 3))
     world_y = float(round(CAM_Y + ((py * CAM_HEIGHT) - cy) * MPP_Y, 3))
     return world_x, world_y
-
-BASE_HOME_JOINTS = [1.2556, -1.2569, 1.5336, 1.2941, 1.5708, -1.8016]

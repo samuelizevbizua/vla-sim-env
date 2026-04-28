@@ -1,38 +1,55 @@
 """
-Dense recording – only saves successful episodes (cube in bin).
-Automatically discards failures. Bin avoidance uses actual crate dimensions.
-All cameras: 640x480 (matching Berkeley UR5 for later merge).
+Record episodes in LIBERO format for SmolVLA fine-tuning.
+- Two cameras: agent view (image) and wrist view (image2)
+- State: [x, y, z, roll, pitch, yaw, grip, grip]  (8 dims)
+- Action: [dx, dy, dz, droll, dpitch, dyaw, delta_grip] (7 dims)
+- No recording of home reset. One initial frame.
+- Home pose initialised automatically by UR.py.
+- Extra safe: frames buffered in memory; episode saved only if all IK steps succeed.
+- Includes dummy 'task' field to satisfy LeRobot validation.
 """
 
 import os
 import sys
 import random
 import numpy as np
-from pathlib import Path
+import shutil
+import gc
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from controller import Supervisor
-from utils.UR import UR10e_Robot
+from utils.UR import URe_Robot
 from config import (
-    CAM1_DEF, CAM2_DEPTH_DEF, CAM3_DEF,
+    CAM2_DEF, CAM3_DEF,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT,
-    CAM1_RECEIVER, CAM3_RECEIVER, CAM2_DEPTH_RECEIVER,
-    GET_RECEIVER_BASE64_IMAGE, GET_RECEIVER_DEPTH_IMAGE, SIM_TABLE_DEF
+    CAM2_RECEIVER, CAM3_RECEIVER,
+    GET_RECEIVER_BASE64_IMAGE, SIM_TABLE_DEF
 )
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 # ========== Configuration ==========
-LANGUAGE_INSTRUCTION = "pick up the red cube and put it in the green bin"
-NUM_EPISODES = 50
+LANGUAGE_INSTRUCTIONS = [
+    "pick up the red cube and put it in the green bin",
+    "grab the red block and drop it in the green crate",
+    "move the red object into the green container",
+    "place the red cube inside the green bin",
+    "put the red cube in the crate",
+    "put the block in the crate",
+    "put the block in the bin",
+    "place the block in the crate",
+    "place the block in the bin",
+    "move the block inside the crate",
+]
+NUM_EPISODES = 100
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-DATASET_ROOT = os.path.join(PROJECT_ROOT, "recorded_dataset")
-REPO_ID = "local/ur5e_pickplace"
-TASK_NAME = "pick_place_cube"
+# Use a completely new dataset name to avoid any leftover metadata
+DATASET_ROOT = os.path.join(PROJECT_ROOT, "recorded_dataset_v3")
+REPO_ID = "local/ur5e_pickplace_v3"
 
 # ========== Initialise Webots and robot ==========
 supervisor = Supervisor()
-robot = UR10e_Robot(supervisor)
+robot = URe_Robot(supervisor)
 timestep = int(supervisor.getBasicTimeStep())
 control_dt = timestep / 1000.0
 actual_fps = int(1000 / timestep)
@@ -40,47 +57,38 @@ print(f"[INFO] Webots timestep = {timestep} ms → recording at {actual_fps} FPS
 
 table_node = supervisor.getFromDef(SIM_TABLE_DEF)
 table_pos = table_node.getPosition()
-table_size = table_node.getField("size").getSFVec3f()   # (width, depth, height)
+table_size = table_node.getField("size").getSFVec3f()
 TABLE_HEIGHT = table_size[2]
-HOME_POS = [float(table_pos[0]), float(table_pos[1]), TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]
-
-# Table bounds (world coordinates)
 TABLE_X_MIN = table_pos[0] - table_size[0]/2
 TABLE_X_MAX = table_pos[0] + table_size[0]/2
 TABLE_Y_MIN = table_pos[1] - table_size[1]/2
 TABLE_Y_MAX = table_pos[1] + table_size[1]/2
-SAFETY_MARGIN = 0.07   # 5 cm from table edges
+SAFETY_MARGIN = 0.07
 
-# ========== Cameras ==========
+# Cameras: only two – agent view (CAM2) and wrist view (CAM3)
 CHANNELS = 3
 
-cam1_node = supervisor.getFromDef(CAM1_DEF)
-CAM1_WIDTH = cam1_node.getField("width").getSFInt32()
-CAM1_HEIGHT = cam1_node.getField("height").getSFInt32()
-receiver1 = supervisor.getDevice(CAM1_RECEIVER)
-receiver1.enable(timestep)
+# Angled agent view (use CAM2)
+cam2_node = supervisor.getFromDef(CAM2_DEF)
+CAM2_WIDTH = cam2_node.getField("width").getSFInt32()
+CAM2_HEIGHT = cam2_node.getField("height").getSFInt32()
+receiver2 = supervisor.getDevice(CAM2_RECEIVER)
+receiver2.enable(timestep)
 
+# Wrist camera (CAM3)
 cam3_node = supervisor.getFromDef(CAM3_DEF)
 CAM3_WIDTH = cam3_node.getField("width").getSFInt32()
 CAM3_HEIGHT = cam3_node.getField("height").getSFInt32()
 receiver3 = supervisor.getDevice(CAM3_RECEIVER)
 receiver3.enable(timestep)
 
-depth_node = supervisor.getFromDef(CAM2_DEPTH_DEF)
-MIN_DEPTH = depth_node.getField("minRange").getSFFloat()
-MAX_DEPTH = depth_node.getField("maxRange").getSFFloat()
-DEPTH_WIDTH = depth_node.getField("width").getSFInt32()
-DEPTH_HEIGHT = depth_node.getField("height").getSFInt32()
-depth_receiver = supervisor.getDevice(CAM2_DEPTH_RECEIVER)
-depth_receiver.enable(timestep)
-
+# Cube and bin nodes
 target_node = supervisor.getFromDef("OBJ1")
 dest_node = supervisor.getFromDef("BIN")
 DEFAULT_CUBE_POS = target_node.getPosition()
 DEFAULT_CUBE_ROT = target_node.getField("rotation").getSFRotation()
 DEFAULT_CUBE_POS = [0.2, 0.55, DEFAULT_CUBE_POS[2]]
 
-# ========== Bin world bounding box ==========
 bin_pos = dest_node.getPosition()
 bin_size = dest_node.getField("size").getSFVec3f()
 bin_half_world_x = bin_size[0] / 2.0
@@ -89,108 +97,110 @@ BIN_X_MIN = bin_pos[0] - bin_half_world_x
 BIN_X_MAX = bin_pos[0] + bin_half_world_x
 BIN_Y_MIN = bin_pos[1] - bin_half_world_y
 BIN_Y_MAX = bin_pos[1] + bin_half_world_y
-BIN_MARGIN = 0.085   # 8 cm clearance
+BIN_MARGIN = 0.085
 
-print(f"[Bin] Footprint: X=[{BIN_X_MIN:.3f}, {BIN_X_MAX:.3f}], Y=[{BIN_Y_MIN:.3f}, {BIN_Y_MAX:.3f}]")
-
-# ========== Helper functions ==========
+# Helper functions for cube
 def reset_cube_to_default():
     target_node.getField("translation").setSFVec3f(DEFAULT_CUBE_POS)
     target_node.getField("rotation").setSFRotation(DEFAULT_CUBE_ROT)
     for _ in range(10):
         supervisor.step(timestep)
-    print(f"[Failsafe] Cube reset to default position {DEFAULT_CUBE_POS[:2]}")
 
 def is_cube_safe(z_threshold=0.69):
     pos = target_node.getPosition()
-    if pos[2] < z_threshold:
-        return False
-    if not (TABLE_X_MIN + SAFETY_MARGIN < pos[0] < TABLE_X_MAX - SAFETY_MARGIN):
-        return False
-    if not (TABLE_Y_MIN + SAFETY_MARGIN < pos[1] < TABLE_Y_MAX - SAFETY_MARGIN):
-        return False
+    if pos[2] < z_threshold: return False
+    if not (TABLE_X_MIN + SAFETY_MARGIN < pos[0] < TABLE_X_MAX - SAFETY_MARGIN): return False
+    if not (TABLE_Y_MIN + SAFETY_MARGIN < pos[1] < TABLE_Y_MAX - SAFETY_MARGIN): return False
     return True
 
-def randomize_cube_pose(avoid_bin=True):
+def randomize_cube_pose():
     x_min, x_max = TABLE_X_MIN + SAFETY_MARGIN, TABLE_X_MAX - SAFETY_MARGIN
     y_min, y_max = TABLE_Y_MIN + SAFETY_MARGIN, TABLE_Y_MAX - SAFETY_MARGIN
-
-    if avoid_bin:
-        for _ in range(100):
-            x = random.uniform(x_min, x_max)
-            y = random.uniform(y_min, y_max)
-            if (x < BIN_X_MIN - BIN_MARGIN or x > BIN_X_MAX + BIN_MARGIN or
-                y < BIN_Y_MIN - BIN_MARGIN or y > BIN_Y_MAX + BIN_MARGIN):
-                break
-        else:
-            x = 0.25
-            y = 0.60
-            print("[Warning] Could not find safe cube position, using fallback.")
-    else:
+    for _ in range(100):
         x = random.uniform(x_min, x_max)
         y = random.uniform(y_min, y_max)
-
+        if (x < BIN_X_MIN - BIN_MARGIN or x > BIN_X_MAX + BIN_MARGIN or
+            y < BIN_Y_MIN - BIN_MARGIN or y > BIN_Y_MAX + BIN_MARGIN):
+            break
+    else:
+        x, y = 0.25, 0.60
     z = DEFAULT_CUBE_POS[2]
     target_node.getField("translation").setSFVec3f([x, y, z])
     yaw = random.uniform(-3.14159, 3.14159)
     target_node.getField("rotation").setSFRotation([0, 0, 1, yaw])
-
     for _ in range(10):
         supervisor.step(timestep)
-
     if not is_cube_safe():
-        print("[Warning] Cube glitched after randomisation! Resetting to default.")
         reset_cube_to_default()
-        x, y = DEFAULT_CUBE_POS[0], DEFAULT_CUBE_POS[1]
-        yaw = DEFAULT_CUBE_ROT[3]
-    else:
-        print(f"[Randomize] Cube moved to ({x:.3f}, {y:.3f}) with yaw {yaw:.3f} rad")
     return (x, y, yaw)
 
-def capture_frame(gripper_cmd, success_flag, done_flag):
-    top_img = GET_RECEIVER_BASE64_IMAGE(receiver1, format="numpy")
+# ---------- Helper: create a single frame (delta action) ----------
+def create_frame(current_pose, gripper_cmd, success, done_flag, previous_pose, previous_gripper_cmd):
+    agent_img = GET_RECEIVER_BASE64_IMAGE(receiver2, format="numpy")
     wrist_img = GET_RECEIVER_BASE64_IMAGE(receiver3, format="numpy")
-    depth_rgb = GET_RECEIVER_DEPTH_IMAGE(depth_receiver, DEPTH_HEIGHT, DEPTH_WIDTH, MIN_DEPTH, MAX_DEPTH)
-
-    if top_img is None or wrist_img is None or depth_rgb is None:
+    if agent_img is None or wrist_img is None:
         return None
 
-    joints = np.array([sensor.getValue() for sensor in robot.sensors])
-    state = np.concatenate([joints, [gripper_cmd, 0.0]])
+    # State: [x,y,z,roll,pitch,yaw, grip, grip] (8 dims)
+    state = np.array(current_pose + [gripper_cmd, gripper_cmd], dtype=np.float32)
 
-    target_joints = np.array([motor.getTargetPosition() for motor in robot.motors])
-    action = np.concatenate([target_joints, [gripper_cmd]])
+    # Action: delta (7 dims)
+    if previous_pose is None:
+        action = np.zeros(7, dtype=np.float32)   # first frame
+    else:
+        delta_pos = np.array(current_pose[:3]) - np.array(previous_pose[:3])
+        delta_angle = []
+        for i in range(3, 6):
+            diff = current_pose[i] - previous_pose[i]
+            # wrap to [-π, π]
+            diff = (diff + np.pi) % (2 * np.pi) - np.pi
+            delta_angle.append(diff)
+        delta_grip = gripper_cmd - previous_gripper_cmd
+        action = np.array(list(delta_pos) + delta_angle + [delta_grip], dtype=np.float32)
 
-    return {
-        "observation.images.image": top_img,
-        "observation.images.image_with_depth": depth_rgb,
-        "observation.images.hand_image": wrist_img,
-        "observation.state": state.astype(np.float32),
-        "action": action.astype(np.float32),
-        "language_instruction": LANGUAGE_INSTRUCTION,
-        "task": TASK_NAME,
-        "next.reward": np.array([1.0 if success_flag else 0.0], dtype=np.float32),
+    frame = {
+        "observation.images.image": agent_img,
+        "observation.images.image2": wrist_img,
+        "observation.state": state,
+        "action": action,
+        "task": random.choice(LANGUAGE_INSTRUCTIONS),
+        "next.reward": np.array([1.0 if success else 0.0], dtype=np.float32),
         "next.done": np.array([done_flag], dtype=bool),
     }
+    return frame
+
+# ---------- Helper class to buffer an episode ----------
+class EpisodeRecorder:
+    def __init__(self):
+        self.frames = []
+        self.prev_pose = None
+        self.prev_grip = None
+
+    def capture(self, current_pose, gripper_cmd, success, done_flag):
+        frame = create_frame(current_pose, gripper_cmd, success, done_flag,
+                             self.prev_pose, self.prev_grip)
+        if frame is not None:
+            self.frames.append(frame)
+            self.prev_pose = current_pose
+            self.prev_grip = gripper_cmd
+        return frame is not None
 
 # ========== Create dataset ==========
+if os.path.exists(DATASET_ROOT):
+    print(f"⚠️ Deleting existing dataset at {DATASET_ROOT} for clean start")
+    shutil.rmtree(DATASET_ROOT)
+
 dataset = LeRobotDataset.create(
     repo_id=REPO_ID,
     root=DATASET_ROOT,
     fps=actual_fps,
-    robot_type="unknown",
     features={
         "observation.images.image": {
             "dtype": "image",
-            "shape": (CAM1_HEIGHT, CAM1_WIDTH, CHANNELS),
+            "shape": (CAM2_HEIGHT, CAM2_WIDTH, CHANNELS),
             "names": ["height", "width", "channels"]
         },
-        "observation.images.image_with_depth": {
-            "dtype": "image",
-            "shape": (DEPTH_HEIGHT, DEPTH_WIDTH, CHANNELS),
-            "names": ["height", "width", "channels"]
-        },
-        "observation.images.hand_image": {
+        "observation.images.image2": {
             "dtype": "image",
             "shape": (CAM3_HEIGHT, CAM3_WIDTH, CHANNELS),
             "names": ["height", "width", "channels"]
@@ -198,168 +208,249 @@ dataset = LeRobotDataset.create(
         "observation.state": {
             "dtype": "float32",
             "shape": (8,),
-            "names": ["state"]
+            "names": ["x", "y", "z", "roll", "pitch", "yaw", "grip_l", "grip_r"]
         },
         "action": {
             "dtype": "float32",
             "shape": (7,),
-            "names": ["action"]
-        },
-        "language_instruction": {
-            "dtype": "string",
-            "shape": (1,),
-            "names": None
+            "names": ["dx", "dy", "dz", "droll", "dpitch", "dyaw", "grip"]
         },
         "next.reward": {
-            "dtype": "float32",
-            "shape": (1,),
+            "dtype": "float32", 
+            "shape": (1,), 
             "names": None
         },
         "next.done": {
-            "dtype": "bool",
-            "shape": (1,),
+            "dtype": "bool", 
+            "shape": (1,), 
             "names": None
         }
     },
-    use_videos=False,
+    use_videos=True,
 )
+print(f"[Dataset] LIBERO‑compatible dataset created at {DATASET_ROOT} (FPS={actual_fps})")
 
-print(f"[Dataset] Created image‑based dataset at {DATASET_ROOT} (FPS={actual_fps})")
-
+# Main recording loop
 successes, failures = 0, 0
+episode_idx = 0
+settle_steps = int(0.4 / control_dt)
+grip_settle_steps = int(0.5 / control_dt)
 
-# ========== Main recording loop ==========
-for episode_idx in range(NUM_EPISODES):
+# 10 seconds max per movement to prevent hanging if the robot gets stuck
+MAX_PHASE_STEPS = int(10.0 / control_dt) 
+
+# Run until we have exactly NUM_EPISODES (100) successes
+while successes < NUM_EPISODES:
     print(f"\n{'='*50}")
-    print(f"[Episode {episode_idx}/{NUM_EPISODES-1}] Randomizing cube pose...")
+    print(f"[Attempt {episode_idx}] Saved Successes: {successes}/{NUM_EPISODES}. Randomising cube...")
     randomize_cube_pose()
 
-    frame_count = 0
-
-    # ---- Move to home ----
-    robot.move_to_world_target_async(HOME_POS)
-    while not robot.is_target_reached() and supervisor.step(timestep) != -1:
-        frame = capture_frame(gripper_cmd=0.0, success_flag=False, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
-    settle_steps = int(0.4 / control_dt)
-    for _ in range(settle_steps):
+    # ---- RESET TO HOME (NO RECORDING) ----
+    noisy_home = [angle + random.uniform(-0.05, 0.05) for angle in robot.home_joints]
+    robot.set_joint_positions_async(noisy_home)
+    print("      -> Moving to home (not recording)")
+    wait_steps = int(3 / control_dt)
+    for _ in range(wait_steps):
         supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd=0.0, success_flag=False, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
 
+    # Open gripper
     robot.operate_gripper(close=False)
     gripper_cmd = 0.0
-    success = False
 
-    # ---- PICKING phase ----
+    # ----- Buffer for frames -----
+    recorder = EpisodeRecorder()
+
+    # Capture initial frame after stabilising
+    for _ in range(5):
+        supervisor.step(timestep)
+    current_pose = robot.get_end_effector_pose()
+    if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+        print(f"      -> [Warning] Failed to capture initial frame. Skipping attempt {episode_idx}.")
+        episode_idx += 1
+        continue
+
+    # ---- PICK phase ----
     cube_pos = target_node.getPosition()
     approach_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(approach_pos)
+    if robot._target_joints is None:
+        print(f"      -> [Abort] IK failed for approach_pos. Skipping attempt {episode_idx}.")
+        episode_idx += 1
+        continue
+        
+    phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
-    for _ in range(settle_steps):
-        supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
+        if phase_steps > MAX_PHASE_STEPS:
+            print(f"      -> [Timeout] Arm got stuck approaching. Aborting attempt {episode_idx}.")
+            robot._target_joints = None
+            break
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+            break
+        phase_steps += 1
+    else:
+        for _ in range(settle_steps):
+            supervisor.step(timestep)
+            current_pose = robot.get_end_effector_pose()
+            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+                break
+    if robot._target_joints is None or len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
 
     hover_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_TARGET_HOVER_HEIGHT]
     robot.move_to_world_target_async(hover_pos)
+    if robot._target_joints is None:
+        print(f"      -> [Abort] IK failed for hover_pos. Skipping attempt {episode_idx}.")
+        episode_idx += 1
+        continue
+        
+    phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
-    for _ in range(settle_steps):
-        supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
+        if phase_steps > MAX_PHASE_STEPS:
+            print(f"      -> [Timeout] Arm got stuck hovering. Aborting attempt {episode_idx}.")
+            robot._target_joints = None
+            break
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+            break
+        phase_steps += 1
+    else:
+        for _ in range(settle_steps):
+            supervisor.step(timestep)
+            current_pose = robot.get_end_effector_pose()
+            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+                break
+    if robot._target_joints is None or len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
 
     # Close gripper
     robot.operate_gripper(close=True)
     gripper_cmd = 1.0
-    settle_steps_grip = int(0.5 / control_dt)
-    for _ in range(settle_steps_grip):
+    for _ in range(grip_settle_steps):
         supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+            break
+    if len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
 
     lift_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(lift_pos)
+    if robot._target_joints is None:
+        print(f"      -> [Abort] IK failed for lift_pos. Skipping attempt {episode_idx}.")
+        episode_idx += 1
+        continue
+        
+    phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
-    for _ in range(settle_steps):
-        supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
+        if phase_steps > MAX_PHASE_STEPS:
+            print(f"      -> [Timeout] Arm got stuck lifting. Aborting attempt {episode_idx}.")
+            robot._target_joints = None
+            break
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+            break
+        phase_steps += 1
+    else:
+        for _ in range(settle_steps):
+            supervisor.step(timestep)
+            current_pose = robot.get_end_effector_pose()
+            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+                break
+    if robot._target_joints is None or len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
 
-    # ---- DROPPING phase ----
+    # ---- DROP phase ----
     bin_pos = dest_node.getPosition()
     above_bin = [bin_pos[0], bin_pos[1], bin_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(above_bin)
+    if robot._target_joints is None:
+        print(f"      -> [Abort] IK failed for above_bin. Skipping attempt {episode_idx}.")
+        episode_idx += 1
+        continue
+        
+    phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
-    for _ in range(settle_steps):
-        supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
+        if phase_steps > MAX_PHASE_STEPS:
+            print(f"      -> [Timeout] Arm got stuck moving to bin. Aborting attempt {episode_idx}.")
+            robot._target_joints = None
+            break
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+            break
+        phase_steps += 1
+    else:
+        for _ in range(settle_steps):
+            supervisor.step(timestep)
+            current_pose = robot.get_end_effector_pose()
+            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+                break
+    if robot._target_joints is None or len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
 
+    # Open gripper
     robot.operate_gripper(close=False)
     gripper_cmd = 0.0
-    for _ in range(settle_steps_grip):
+    for _ in range(grip_settle_steps):
         supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=False)
-        if frame:
-            dataset.add_frame(frame)
-            frame_count += 1
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
+            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
+            break
+    if len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
 
     # Check success
     cube_final_pos = target_node.getPosition()
-    if ((cube_final_pos[0] - bin_pos[0])**2 + (cube_final_pos[1] - bin_pos[1])**2) < 0.1**2:  # bin half width 0.1
-        success = True
+    success = ((cube_final_pos[0] - bin_pos[0])**2 + (cube_final_pos[1] - bin_pos[1])**2) < 0.1**2
+    if success:
         successes += 1
     else:
         failures += 1
 
-    # Final pause
+    # Final frames with done=True
     for _ in range(20):
         supervisor.step(timestep)
-        frame = capture_frame(gripper_cmd, success, done_flag=True)
-        if frame:
+        current_pose = robot.get_end_effector_pose()
+        if not recorder.capture(current_pose, gripper_cmd, success=success, done_flag=True):
+            print(f"      -> [Warning] Final frame capture failed. Skipping attempt {episode_idx}.")
+            break
+    if len(recorder.frames) == 0:
+        episode_idx += 1
+        continue
+
+    # ---- Episode successful – commit all frames to dataset ----
+    if success:
+        for frame in recorder.frames:
             dataset.add_frame(frame)
-            frame_count += 1
-
-    dataset.save_episode()
-    print(f"[Episode {episode_idx}] Saved. Frames recorded: {frame_count}")
-    print(f"Total successes: {successes}, Total failures: {failures}")
-
-    if not is_cube_safe():
-        print(f"[Warning] Cube glitched after episode {episode_idx}. Resetting for next episode.")
-        reset_cube_to_default()
+        dataset.save_episode()
+        print(f"[Attempt {episode_idx}] SUCCESS & SAVED. Frames: {len(recorder.frames)} | Total Successes: {successes}/{NUM_EPISODES} | Total Failures: {failures}")
+    else:
+        # If the task failed, we just ignore recorder.frames and don't save the episode!
+        print(f"[Attempt {episode_idx}] FAILED & DISCARDED. The robot missed the bin. | Total Successes: {successes}/{NUM_EPISODES} | Total Failures: {failures}")
+        
+    # ---> FORCE MEMORY CLEANUP TO PREVENT MAC CRASHES <---
+    recorder.frames.clear()
+    del recorder
+    gc.collect()
+    
+    # Increment the loop counter for attempts
+    episode_idx += 1
 
 dataset.finalize()
-print(f"\n{'='*50}")
-print(f"Recording complete. {NUM_EPISODES} episodes saved to {DATASET_ROOT}")
-print(f"Successful episodes: {successes}, Failed episodes: {failures}")
+print(f"\nRecording complete. {NUM_EPISODES} successful episodes safely recorded to {DATASET_ROOT}")

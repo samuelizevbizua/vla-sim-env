@@ -19,6 +19,8 @@ fi
 # Remove existing pycache directories
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
+rm -rf ~/.cache/huggingface/
+
 # Create a fresh virtual environment with Python 3.12
 python3.12 -m venv .venv
 
