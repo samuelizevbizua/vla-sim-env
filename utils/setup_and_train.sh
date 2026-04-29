@@ -1,8 +1,7 @@
 #!/bin/bash
 # setup_and_train.sh - Full setup + optimised training on RunPod RTX 4090
-# Direct download to local /tmp for maximum I/O performance.
 
-set -e  # exit on error, but conditional checks prevent unnecessary exits
+set -e  
 
 echo "🚀 Starting full setup and training (idempotent, optimised)..."
 
@@ -10,7 +9,9 @@ echo "🚀 Starting full setup and training (idempotent, optimised)..."
 # 1. Environment variables
 # ------------------------------
 export CUDA_VISIBLE_DEVICES=0
-export HF_TOKEN="your_huggingface_token_here"  # Set your Hugging Face token here
+export HF_TOKEN="your_huggingface_token_here" 
+# Fast Rust downloader engine
+export HF_HUB_ENABLE_HF_TRANSFER="1"
 
 # ------------------------------
 # 2. Install Miniforge if missing
@@ -41,8 +42,9 @@ conda activate lerobot_env
 if ! python -c "import lerobot" 2>/dev/null; then
     echo "📚 Installing LeRobot..."
     pip install --upgrade pip
+    # Added hf_transfer to the install list for speed
     pip install 'lerobot[dataset,smolvla] @ git+https://github.com/huggingface/lerobot.git'
-    pip install datasets av
+    pip install datasets av hf_transfer
 else
     echo "✅ LeRobot already installed."
 fi
@@ -54,13 +56,14 @@ echo "🔍 Verifying GPU..."
 python -c "import torch; assert torch.cuda.is_available(); print('✅ GPU ready: {}'.format(torch.cuda.get_device_name(0)))"
 
 # ------------------------------
-# 6. Download dataset directly to fast local storage (/tmp)
+# 6. Download dataset to local storage (/tmp)
 # ------------------------------
 DATASET_FAST="/tmp/dataset"
+HF_DATASET_LOCATION="leumals/ur5e_pickplace_v3"
 if [ ! -f "$DATASET_FAST/meta/info.json" ]; then
-    echo "📥 Downloading dataset directly to fast local NVMe ($DATASET_FAST)..."
+    echo "📥 Downloading dataset to local NVMe ($DATASET_FAST)..."
     mkdir -p "$DATASET_FAST"
-    hf download leumals/ur5e_webots_pickplace --repo-type dataset --local-dir "$DATASET_FAST"
+    hf download $HF_DATASET_LOCATION --repo-type dataset --local-dir "$DATASET_FAST"
 else
     echo "✅ Dataset already exists at $DATASET_FAST"
 fi
@@ -72,13 +75,13 @@ pkill -f lerobot_train 2>/dev/null || true
 sleep 2
 
 # ------------------------------
-# 8. Launch training with optimised data loader
+# 8. Launch training with RTX 4090 Optimisations
 # ------------------------------
 cd /workspace
 mkdir -p lerobot
 cd lerobot
 
-echo "🏋️ Starting training with optimised data loader (num_workers=12, prefetch=8)..."
+echo "🏋️ Starting training (Batch: 16, Workers: 12, Steps: 15000)..."
 nohup python -m lerobot.scripts.lerobot_train \
     --dataset.repo_id=local/ur5e_pickplace \
     --dataset.root="$DATASET_FAST" \
@@ -98,7 +101,7 @@ nohup python -m lerobot.scripts.lerobot_train \
     --wandb.enable=false \
     --save_checkpoint=true \
     --policy.push_to_hub=true \
-    --policy.repo_id=leumals/smolvla_ur5e_finetuned \
+    --policy.repo_id=leumals/smolvla_finetuned_v3 \
     --policy.private=false \
     --num_workers=12 \
     --prefetch_factor=8 \
@@ -107,4 +110,3 @@ nohup python -m lerobot.scripts.lerobot_train \
 PID=$!
 echo "✅ Training launched with PID $PID"
 echo "📊 Monitor logs: tail -f /workspace/training.log"
-echo "🖥️ Monitor GPU: watch -n 1 nvidia-smi"
