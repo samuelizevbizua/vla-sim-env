@@ -58,8 +58,10 @@ python -c "import torch; assert torch.cuda.is_available(); print('✅ GPU ready:
 # ------------------------------
 # 6. Download dataset to local storage (/tmp)
 # ------------------------------
-DATASET_FAST="/tmp/dataset"
+DATASET_ROOT="/tmp/data"
 HF_DATASET_LOCATION="leumals/ur5e_pickplace_v3"
+DATASET_FAST="$DATASET_ROOT/$HF_DATASET_LOCATION"
+
 if [ ! -f "$DATASET_FAST/meta/info.json" ]; then
     echo "📥 Downloading dataset to local NVMe ($DATASET_FAST)..."
     mkdir -p "$DATASET_FAST"
@@ -75,15 +77,15 @@ pkill -f lerobot_train 2>/dev/null || true
 sleep 2
 
 # ------------------------------
-# 8. Launch training with RTX 4090 Optimisations
+# 8. Launch training with L40S Optimisations
 # ------------------------------
 cd /workspace
 mkdir -p lerobot
 cd lerobot
 
-echo "🏋️ Starting training (Batch: 16, Workers: 12, Steps: 15000)..."
+echo "🏋️ Starting training (Batch: 32, Workers: 14, Steps: 15000)..."
 nohup python -m lerobot.scripts.lerobot_train \
-    --dataset.repo_id=local/ur5e_pickplace \
+    --dataset.repo_id=$HF_DATASET_LOCATION \
     --dataset.root="$DATASET_FAST" \
     --policy.type=smolvla \
     --policy.pretrained_path=lerobot/smolvla_base \
