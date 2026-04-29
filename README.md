@@ -43,4 +43,5 @@ Recommended setup:
 
 This avoids downloading the model on your local machine while keeping the rest of the project runnable from your PC.
 
-RUNPOD Template for current working pod - https://console.runpod.io/deploy?template=vf7q8wckgm&ref=jr9ndf5k
+RUNPOD Template for current working pod - https://console.runpod.io/deploy?template=juh5pg634w&ref=jr9ndf5k
+Training done on rtx l40s

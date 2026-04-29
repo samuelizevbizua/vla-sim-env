@@ -89,7 +89,7 @@ nohup python -m lerobot.scripts.lerobot_train \
     --policy.pretrained_path=lerobot/smolvla_base \
     --output_dir=./outputs/smolvla_finetuned \
     --job_name=ur5e_pickplace_training \
-    --batch_size=16 \
+    --batch_size=32 \
     --steps=15000 \
     --policy.device=cuda \
     --policy.use_amp=true \
@@ -103,7 +103,7 @@ nohup python -m lerobot.scripts.lerobot_train \
     --policy.push_to_hub=true \
     --policy.repo_id=leumals/smolvla_finetuned_v3 \
     --policy.private=false \
-    --num_workers=12 \
+    --num_workers=14 \
     --prefetch_factor=8 \
     > /workspace/training.log 2>&1 &
 
