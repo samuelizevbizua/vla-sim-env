@@ -11,11 +11,6 @@ if [ -d ".venv" ]; then
   rm -rf .venv
 fi
 
-# Remove existing recordings directory for a clean setup
-if [ -d "recorded_dataset" ]; then
-  rm -rf recorded_dataset
-fi
-
 # Remove existing pycache directories
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
