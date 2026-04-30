@@ -4,9 +4,8 @@ Record episodes in LIBERO format for SmolVLA fine-tuning.
 - State: [x, y, z, roll, pitch, yaw, grip, grip]  (8 dims)
 - Action: [dx, dy, dz, droll, dpitch, dyaw, delta_grip] (7 dims)
 - No recording of home reset. One initial frame.
-- Home pose initialised automatically by UR.py.
 - Extra safe: frames buffered in memory; episode saved only if all IK steps succeed.
-- Includes dummy 'task' field to satisfy LeRobot validation.
+- Dual-key language fields: satisfies both local LeRobot and Hugging Face SmolVLA.
 """
 
 import os
@@ -41,11 +40,13 @@ LANGUAGE_INSTRUCTIONS = [
     "place the block in the bin",
     "move the block inside the crate",
 ]
+
 NUM_EPISODES = 100
+MAX_ALLOWED_FRAMES = 700  # Automatically discard episodes longer than ~11 seconds
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-# Use a completely new dataset name to avoid any leftover metadata
-DATASET_ROOT = os.path.join(PROJECT_ROOT, "recorded_dataset_v3")
-REPO_ID = "local/ur5e_pickplace_v3"
+DATASET_ROOT = os.path.join(PROJECT_ROOT, "recorded_dataset_v4")
+REPO_ID = "local/ur5e_pickplace_v4"
 
 # ========== Initialise Webots and robot ==========
 supervisor = Supervisor()
@@ -158,12 +159,16 @@ def create_frame(current_pose, gripper_cmd, success, done_flag, previous_pose, p
         delta_grip = gripper_cmd - previous_gripper_cmd
         action = np.array(list(delta_pos) + delta_angle + [delta_grip], dtype=np.float32)
 
+    # Pre-select instruction so it's identical for both keys
+    instruction = random.choice(LANGUAGE_INSTRUCTIONS)
+
     frame = {
         "observation.images.image": agent_img,
         "observation.images.image2": wrist_img,
         "observation.state": state,
         "action": action,
-        "task": random.choice(LANGUAGE_INSTRUCTIONS),
+        "language_instruction": instruction, # For SmolVLA
+        "task": instruction,                 # For Local LeRobot Validation
         "next.reward": np.array([1.0 if success else 0.0], dtype=np.float32),
         "next.done": np.array([done_flag], dtype=bool),
     }
@@ -215,6 +220,11 @@ dataset = LeRobotDataset.create(
             "shape": (7,),
             "names": ["dx", "dy", "dz", "droll", "dpitch", "dyaw", "grip"]
         },
+        "language_instruction": {   
+            "dtype": "string",
+            "shape": (1,),
+            "names": None
+        },
         "next.reward": {
             "dtype": "float32", 
             "shape": (1,), 
@@ -232,17 +242,15 @@ print(f"[Dataset] LIBERO‑compatible dataset created at {DATASET_ROOT} (FPS={ac
 
 # Main recording loop
 successes, failures = 0, 0
-episode_idx = 0
+attempt_idx = 0
 settle_steps = int(0.4 / control_dt)
 grip_settle_steps = int(0.5 / control_dt)
-
-# 10 seconds max per movement to prevent hanging if the robot gets stuck
 MAX_PHASE_STEPS = int(10.0 / control_dt) 
 
-# Run until we have exactly NUM_EPISODES (100) successes
+# Run until we have exactly NUM_EPISODES successes
 while successes < NUM_EPISODES:
     print(f"\n{'='*50}")
-    print(f"[Attempt {episode_idx}] Saved Successes: {successes}/{NUM_EPISODES}. Randomising cube...")
+    print(f"[Attempt {attempt_idx}] Saved Successes: {successes}/{NUM_EPISODES}. Randomising cube...")
     randomize_cube_pose()
 
     # ---- RESET TO HOME (NO RECORDING) ----
@@ -253,11 +261,8 @@ while successes < NUM_EPISODES:
     for _ in range(wait_steps):
         supervisor.step(timestep)
 
-    # Open gripper
     robot.operate_gripper(close=False)
     gripper_cmd = 0.0
-
-    # ----- Buffer for frames -----
     recorder = EpisodeRecorder()
 
     # Capture initial frame after stabilising
@@ -265,8 +270,8 @@ while successes < NUM_EPISODES:
         supervisor.step(timestep)
     current_pose = robot.get_end_effector_pose()
     if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-        print(f"      -> [Warning] Failed to capture initial frame. Skipping attempt {episode_idx}.")
-        episode_idx += 1
+        print(f"      -> [Warning] Failed to capture initial frame. Skipping attempt {attempt_idx}.")
+        attempt_idx += 1
         continue
 
     # ---- PICK phase ----
@@ -274,59 +279,53 @@ while successes < NUM_EPISODES:
     approach_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(approach_pos)
     if robot._target_joints is None:
-        print(f"      -> [Abort] IK failed for approach_pos. Skipping attempt {episode_idx}.")
-        episode_idx += 1
+        print(f"      -> [Abort] IK failed for approach_pos. Skipping attempt {attempt_idx}.")
+        attempt_idx += 1
         continue
         
     phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
         if phase_steps > MAX_PHASE_STEPS:
-            print(f"      -> [Timeout] Arm got stuck approaching. Aborting attempt {episode_idx}.")
+            print(f"      -> [Timeout] Arm got stuck approaching. Aborting attempt {attempt_idx}.")
             robot._target_joints = None
             break
         current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-            break
+        recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
         phase_steps += 1
     else:
         for _ in range(settle_steps):
             supervisor.step(timestep)
             current_pose = robot.get_end_effector_pose()
-            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-                break
+            recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
+            
     if robot._target_joints is None or len(recorder.frames) == 0:
-        episode_idx += 1
+        attempt_idx += 1
         continue
 
     hover_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_TARGET_HOVER_HEIGHT]
     robot.move_to_world_target_async(hover_pos)
     if robot._target_joints is None:
-        print(f"      -> [Abort] IK failed for hover_pos. Skipping attempt {episode_idx}.")
-        episode_idx += 1
+        print(f"      -> [Abort] IK failed for hover_pos. Skipping attempt {attempt_idx}.")
+        attempt_idx += 1
         continue
         
     phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
         if phase_steps > MAX_PHASE_STEPS:
-            print(f"      -> [Timeout] Arm got stuck hovering. Aborting attempt {episode_idx}.")
+            print(f"      -> [Timeout] Arm got stuck hovering. Aborting attempt {attempt_idx}.")
             robot._target_joints = None
             break
         current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-            break
+        recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
         phase_steps += 1
     else:
         for _ in range(settle_steps):
             supervisor.step(timestep)
             current_pose = robot.get_end_effector_pose()
-            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-                break
+            recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
+
     if robot._target_joints is None or len(recorder.frames) == 0:
-        episode_idx += 1
+        attempt_idx += 1
         continue
 
     # Close gripper
@@ -335,40 +334,36 @@ while successes < NUM_EPISODES:
     for _ in range(grip_settle_steps):
         supervisor.step(timestep)
         current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-            break
+        recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
+
     if len(recorder.frames) == 0:
-        episode_idx += 1
+        attempt_idx += 1
         continue
 
     lift_pos = [cube_pos[0], cube_pos[1], cube_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(lift_pos)
     if robot._target_joints is None:
-        print(f"      -> [Abort] IK failed for lift_pos. Skipping attempt {episode_idx}.")
-        episode_idx += 1
+        print(f"      -> [Abort] IK failed for lift_pos. Skipping attempt {attempt_idx}.")
+        attempt_idx += 1
         continue
         
     phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
         if phase_steps > MAX_PHASE_STEPS:
-            print(f"      -> [Timeout] Arm got stuck lifting. Aborting attempt {episode_idx}.")
+            print(f"      -> [Timeout] Arm got stuck lifting. Aborting attempt {attempt_idx}.")
             robot._target_joints = None
             break
         current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-            break
+        recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
         phase_steps += 1
     else:
         for _ in range(settle_steps):
             supervisor.step(timestep)
             current_pose = robot.get_end_effector_pose()
-            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-                break
+            recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
+
     if robot._target_joints is None or len(recorder.frames) == 0:
-        episode_idx += 1
+        attempt_idx += 1
         continue
 
     # ---- DROP phase ----
@@ -376,30 +371,27 @@ while successes < NUM_EPISODES:
     above_bin = [bin_pos[0], bin_pos[1], bin_pos[2] + GRIPPER_LIFT_HEIGHT]
     robot.move_to_world_target_async(above_bin)
     if robot._target_joints is None:
-        print(f"      -> [Abort] IK failed for above_bin. Skipping attempt {episode_idx}.")
-        episode_idx += 1
+        print(f"      -> [Abort] IK failed for above_bin. Skipping attempt {attempt_idx}.")
+        attempt_idx += 1
         continue
         
     phase_steps = 0
     while not robot.is_target_reached() and supervisor.step(timestep) != -1:
         if phase_steps > MAX_PHASE_STEPS:
-            print(f"      -> [Timeout] Arm got stuck moving to bin. Aborting attempt {episode_idx}.")
+            print(f"      -> [Timeout] Arm got stuck moving to bin. Aborting attempt {attempt_idx}.")
             robot._target_joints = None
             break
         current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-            break
+        recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
         phase_steps += 1
     else:
         for _ in range(settle_steps):
             supervisor.step(timestep)
             current_pose = robot.get_end_effector_pose()
-            if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-                print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-                break
+            recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
+
     if robot._target_joints is None or len(recorder.frames) == 0:
-        episode_idx += 1
+        attempt_idx += 1
         continue
 
     # Open gripper
@@ -408,49 +400,44 @@ while successes < NUM_EPISODES:
     for _ in range(grip_settle_steps):
         supervisor.step(timestep)
         current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False):
-            print(f"      -> [Warning] Frame capture failed. Skipping attempt {episode_idx}.")
-            break
+        recorder.capture(current_pose, gripper_cmd, success=False, done_flag=False)
+
     if len(recorder.frames) == 0:
-        episode_idx += 1
+        attempt_idx += 1
         continue
 
-    # Check success
+    # ---- Final Evaluation & Filtering ----
     cube_final_pos = target_node.getPosition()
-    success = ((cube_final_pos[0] - bin_pos[0])**2 + (cube_final_pos[1] - bin_pos[1])**2) < 0.1**2
-    if success:
-        successes += 1
-    else:
-        failures += 1
+    dist_to_bin = ((cube_final_pos[0] - bin_pos[0])**2 + (cube_final_pos[1] - bin_pos[1])**2)**0.5
+    
+    is_physically_successful = dist_to_bin < 0.1
+    is_efficient = len(recorder.frames) < MAX_ALLOWED_FRAMES
 
-    # Final frames with done=True
-    for _ in range(20):
-        supervisor.step(timestep)
-        current_pose = robot.get_end_effector_pose()
-        if not recorder.capture(current_pose, gripper_cmd, success=success, done_flag=True):
-            print(f"      -> [Warning] Final frame capture failed. Skipping attempt {episode_idx}.")
-            break
-    if len(recorder.frames) == 0:
-        episode_idx += 1
-        continue
-
-    # ---- Episode successful – commit all frames to dataset ----
-    if success:
+    if is_physically_successful and is_efficient:
+        # Final frames with done=True
+        for _ in range(20):
+            supervisor.step(timestep)
+            current_pose = robot.get_end_effector_pose()
+            recorder.capture(current_pose, gripper_cmd, success=True, done_flag=True)
+            
         for frame in recorder.frames:
             dataset.add_frame(frame)
         dataset.save_episode()
-        print(f"[Attempt {episode_idx}] SUCCESS & SAVED. Frames: {len(recorder.frames)} | Total Successes: {successes}/{NUM_EPISODES} | Total Failures: {failures}")
+        successes += 1
+        print(f"✅ SAVED: Attempt {attempt_idx} -> Episode {successes}. Frames: {len(recorder.frames)}")
     else:
-        # If the task failed, we just ignore recorder.frames and don't save the episode!
-        print(f"[Attempt {episode_idx}] FAILED & DISCARDED. The robot missed the bin. | Total Successes: {successes}/{NUM_EPISODES} | Total Failures: {failures}")
+        failures += 1
+        if not is_efficient and is_physically_successful:
+            print(f"❌ DISCARDED: Attempt {attempt_idx} was physically successful but took too long ({len(recorder.frames)} frames). Likely joint twist.")
+        else:
+            print(f"❌ DISCARDED: Attempt {attempt_idx} failed physically. Distance: {dist_to_bin:.2f}m")
         
     # ---> FORCE MEMORY CLEANUP TO PREVENT MAC CRASHES <---
     recorder.frames.clear()
     del recorder
     gc.collect()
     
-    # Increment the loop counter for attempts
-    episode_idx += 1
+    attempt_idx += 1
 
 dataset.finalize()
-print(f"\nRecording complete. {NUM_EPISODES} successful episodes safely recorded to {DATASET_ROOT}")
+print(f"\nRecording complete. {NUM_EPISODES} flawless episodes safely recorded to {DATASET_ROOT}")

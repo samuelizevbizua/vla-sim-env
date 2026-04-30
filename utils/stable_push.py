@@ -14,8 +14,8 @@ api = HfApi(token=HF_TOKEN)
 
 print("📦 Uploading completed local dataset...")
 api.upload_large_folder(
-    folder_path="/Users/samuelize/Desktop/msc-proj/downloaded_video_dataset",
-    repo_id="leumals/ur5e_pickplace_v1",
+    folder_path="/Users/samuelize/Desktop/msc-proj/recorded_dataset_v4",
+    repo_id="leumals/ur5e_pickplace_v2", #ill name it v2 online since theres already a v1
     repo_type="dataset"
 )
 

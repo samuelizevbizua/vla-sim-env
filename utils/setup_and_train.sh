@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_and_train.sh - Full setup + optimised training on RunPod RTX 4090
+# setup_and_train.sh - Full setup + optimised training on RunPod L40S
 
 set -e  
 
@@ -9,9 +9,10 @@ echo "🚀 Starting full setup and training (idempotent, optimised)..."
 # 1. Environment variables
 # ------------------------------
 export CUDA_VISIBLE_DEVICES=0
+# 🚨 REPLACE THIS WITH YOUR REAL TOKEN 🚨
 export HF_TOKEN="your_huggingface_token_here" 
-# Fast Rust downloader engine
 export HF_HUB_ENABLE_HF_TRANSFER="1"
+export HF_DATASETS_CACHE="/workspace/hf_cache"
 
 # ------------------------------
 # 2. Install Miniforge if missing
@@ -42,7 +43,6 @@ conda activate lerobot_env
 if ! python -c "import lerobot" 2>/dev/null; then
     echo "📚 Installing LeRobot..."
     pip install --upgrade pip
-    # Added hf_transfer to the install list for speed
     pip install 'lerobot[dataset,smolvla] @ git+https://github.com/huggingface/lerobot.git'
     pip install datasets av hf_transfer
 else
@@ -58,14 +58,14 @@ python -c "import torch; assert torch.cuda.is_available(); print('✅ GPU ready:
 # ------------------------------
 # 6. Download dataset to local storage (/tmp)
 # ------------------------------
-DATASET_ROOT="/tmp/data"
-HF_DATASET_LOCATION="leumals/ur5e_pickplace_v3"
-DATASET_FAST="$DATASET_ROOT/$HF_DATASET_LOCATION"
+# 👉 UPDATED TO v2
+DATASET_REPO="leumals/ur5e_pickplace_v2"
+DATASET_FAST="/tmp/data/$DATASET_REPO"
 
 if [ ! -f "$DATASET_FAST/meta/info.json" ]; then
     echo "📥 Downloading dataset to local NVMe ($DATASET_FAST)..."
     mkdir -p "$DATASET_FAST"
-    hf download $HF_DATASET_LOCATION --repo-type dataset --local-dir "$DATASET_FAST"
+    hf download $DATASET_REPO --repo-type dataset --local-dir "$DATASET_FAST"
 else
     echo "✅ Dataset already exists at $DATASET_FAST"
 fi
@@ -85,8 +85,9 @@ cd lerobot
 
 echo "🏋️ Starting training (Batch: 32, Workers: 14, Steps: 15000)..."
 nohup python -m lerobot.scripts.lerobot_train \
-    --dataset.repo_id=$HF_DATASET_LOCATION \
+    --dataset.repo_id=$DATASET_REPO \
     --dataset.root="$DATASET_FAST" \
+    --dataset.revision="main" \
     --policy.type=smolvla \
     --policy.pretrained_path=lerobot/smolvla_base \
     --output_dir=./outputs/smolvla_finetuned \
@@ -103,10 +104,11 @@ nohup python -m lerobot.scripts.lerobot_train \
     --wandb.enable=false \
     --save_checkpoint=true \
     --policy.push_to_hub=true \
-    --policy.repo_id=leumals/smolvla_finetuned_v3 \
+    --policy.repo_id="leumals/smolvla_finetuned_v2" \
     --policy.private=false \
     --num_workers=14 \
     --prefetch_factor=8 \
+    --policy.empty_cameras=1 \
     > /workspace/training.log 2>&1 &
 
 PID=$!

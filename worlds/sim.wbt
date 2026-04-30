@@ -97,14 +97,6 @@ DEF OBJ1 Solid {
   physics Physics {
   }
 }
-DEF OBJ2 RubberDuck {
-  translation 0.0816297 0.621627 0.72
-  scale 0.6
-}
-Wrench {
-  translation 0.330599 0.442583 0.700002
-  rotation -3.745872498823644e-05 9.709278782946421e-06 0.9999999992512869 1.0471999830396552
-}
 Robot {
   translation 0 0.43 2.4
   children [
