@@ -2,13 +2,14 @@ import time
 import requests
 from config import VLA_API_URL
 
-def ACTION(base64_img, instruction):
+def ACTION(base64_img_agent, base64_img_wrist, state, instruction):
     """
-    Sends an image and instruction to the VLA server.
-    Returns the action array [dx, dy, dz, rx, ry, ... gripper] or None if it fails.
+    Sends images and instruction to the VLA server.
     """
     payload = {
-        "image": base64_img,
+        "image_agent": base64_img_agent,
+        "image_wrist": base64_img_wrist,
+        "state": state,
         "instruction": instruction
     }
 
@@ -25,7 +26,7 @@ def ACTION(base64_img, instruction):
             
             duration = (time.time() - start_time) * 1000
             print(f" -> [Network] Round-trip: {duration:.0f}ms")
-            return data.get("action")
+            return data.get("actions")
         else:
             print(f" -> [Network Error] Status: {response.status_code}")
             return None

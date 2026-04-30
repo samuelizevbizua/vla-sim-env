@@ -1,7 +1,6 @@
 """
 VLA Continuous Baseline Controller
-Uses VLA model via a server endpoint to continuously predict delta movements.
-Includes automated state-tracking for Baseline Logging.
+Uses fine-tuned SmolVLA model via a server endpoint to continuously predict delta movements.
 """
 
 import os, sys
@@ -11,21 +10,24 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import URe_Robot
 from utils.VLA import ACTION
-# from utils.TEST import LOG_BASELINE 
 
 from config import (
-    CAM2_RECEIVER, SIM_TABLE_DEF, CAM1_RECEIVER,
-    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N, VLA_USER_PROMPTS,
-    GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT
+    CAM2_RECEIVER, CAM3_RECEIVER, SIM_TABLE_DEF, 
+    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N,
+    GRIPPER_LIFT_HEIGHT
 )
+import numpy as np
 
 supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = URe_Robot(supervisor)
 
-# receiver = supervisor.getDevice(CAM2_RECEIVER)
-receiver = supervisor.getDevice(CAM1_RECEIVER)
-receiver.enable(timestep)
+# Get both cameras used in training (Agent view and Wrist view)
+receiver_agent = supervisor.getDevice(CAM2_RECEIVER)
+receiver_agent.enable(timestep)
+
+receiver_wrist = supervisor.getDevice(CAM3_RECEIVER)
+receiver_wrist.enable(timestep)
 
 table_node = supervisor.getFromDef(SIM_TABLE_DEF)
 table_pos  = table_node.getPosition()
@@ -39,11 +41,11 @@ print("[System] Moving to start pose...")
 robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
-# Tracking for baseline
 has_picked = False
 step_counter = 0
-# current_prompt = "pick up the red cube"
-current_prompt = "hover over the orange ball"
+
+# Must match one of the LANGUAGE_INSTRUCTIONS used in training
+current_prompt = "move the red object into the green container" 
 
 print("[Brain] VLA Continuous Loop starting...")
 
@@ -51,68 +53,72 @@ while supervisor.step(timestep) != -1:
     step_counter += 1
     if step_counter % INFERENCE_EVERY_N != 0: continue
 
-    img = GET_RECEIVER_BASE64_IMAGE(receiver)
-    if not img: continue
-
-    # action = ACTION(img, VLA_USER_PROMPTS["baseline"])
-    print(f"current prompt: {current_prompt}")
-    action = ACTION(img, current_prompt)
+    # Grab both images
+    img_agent = GET_RECEIVER_BASE64_IMAGE(receiver_agent)
+    img_wrist = GET_RECEIVER_BASE64_IMAGE(receiver_wrist)
     
+    if not img_agent or not img_wrist: continue
+
+    # 1. Grab the fresh, real-time 6D pose from the physical robot
+    current_pose = robot.get_end_effector_pose()
+    
+    # 2. Match the gripper command format used during training
+    gripper_cmd = 1.0 if has_picked else 0.0
+    
+    # 3. Build the exact 8-dim state array [x, y, z, roll, pitch, yaw, grip, grip]
+    current_state = current_pose + [gripper_cmd, gripper_cmd]
+
+    print(f"Executing prompt: {current_prompt}")
+
+    # 4. Pass the real-time state array to the ACTION function
+    action = ACTION(img_agent, img_wrist, current_state, current_prompt)    
     if action is None:
         print("[System] Waiting for Brain...")
         continue
+    else:
+        print(f"[Brain] Action received: {action}")
 
-    # [x,y,z p,y g]
-
-    # 1. Extract based on SO-100 Joint Kinematics
-    base_pan = action[0]
-    shoulder = action[1]
-    elbow    = action[2]
-    gripper_state = action[5]
-
-    print(f"[VLA] Joints -> Base={base_pan:+.2f} | Shoulder={shoulder:+.2f} | Elbow={elbow:+.2f}")
-
-    # ---------------------------------------------------------
-    # CALIBRATION OFFSETS & SCALING
-    # ---------------------------------------------------------
-    START_X = float(table_pos[0]) 
-    START_Y = float(table_pos[1])
-    START_Z = TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT
-
-    # AI +Base = Right. Webots +X = Right.
-    target_x = START_X + (base_pan * 0.5)    
+    # Action output from model is 7 dims: [dx, dy, dz, droll, dpitch, dyaw, delta_grip]
+    # NOTE: Since action might return a batch, we take action[0] if it's nested
+    if isinstance(action[0], list):
+        current_action = action[0]
+    else:
+        current_action = action
+        
+    dx, dy, dz, droll, dpitch, dyaw, delta_grip = current_action[:7]
     
-    # AI -Elbow = Forward. Webots +Y = Forward.
-    target_y = START_Y - (elbow * 0.4) 
+    # 🚨 TRANSLATE NEURAL SIGNAL [-1, 1] TO PHYSICAL METERS
+    ACTION_SCALE = 0.02
+    dx = dx * ACTION_SCALE
+    dy = dy * ACTION_SCALE
+    dz = dz * ACTION_SCALE
     
-    # AI -Shoulder = Down. 
-    # If shoulder is -1.0, 0.35 + (-1.0 * 0.35) = 0.0 (It perfectly touches the table!)
-    # target_z = START_Z + (shoulder * 0.35)
-    target_z = START_Z
+    # Now the print statement will show the safe, physical meters!
+    print(f"[VLA] Deltas -> dx={dx:+.4f} | dy={dy:+.4f} | dz={dz:+.4f} | grip={delta_grip:+.2f}")
 
-    # Command the physical body
-    robot.move_to_world_target([target_x, target_y, target_z], settle_time_ms=0)
+    # --- APPLY DELTA MOVEMENT ---
+    current_pose = robot.get_end_effector_pose() # [x, y, z, roll, pitch, yaw]
     
-    # --- REFEREE STATE MACHINE ---
-    if gripper_state > 0.5:
+    # Calculate new target pose by adding the SCALED deltas
+    target_x = current_pose[0] + dx
+    target_y = current_pose[1] + dy
+    target_z = current_pose[2] + dz
+    
+    # Command the physical body to move to the new position
+    robot.move_to_world_target_async([target_x, target_y, target_z])
+    
+    # --- REFEREE STATE MACHINE FOR GRIPPER ---
+    # In training, delta_grip was gripper_cmd - previous_gripper_cmd
+    # We need to maintain a running state or threshold it.
+    # Assuming the model outputs roughly > 0.5 to close, < 0.5 to open (if it learned absolute values)
+    # OR if it learned true deltas, positive means closing, negative means opening.
+    
+    if delta_grip > 0.3:
         robot.operate_gripper(close=True)
         if not has_picked:
-            print(" -> [State] VLA initiated Pick! Changing instruction to Place.")
+            print(" -> [State] VLA initiated Pick!")
             has_picked = True
-            print(f"picked cube, robot position at {supervisor.getSelf().getPosition()}")
-            # Change the AI's goal now that the cube is grasped!
-            # current_prompt = "place the pink cube in the green crate"
-            
-    else:
+    elif delta_grip < -0.3:
         robot.operate_gripper(close=False)
         if has_picked:
-            # If it opens its gripper again AFTER having picked it up, it means it dropped it!
-            print(" -> [State] VLA initiated Drop! Ending sequence.")
-            break 
-
-# Final Baseline Log
-# LOG_BASELINE(
-#     supervisor=supervisor,
-#     architecture="VLA",
-#     task="Pick and Place"
-# )
+            print(" -> [State] VLA initiated Drop!")
