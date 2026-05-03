@@ -12,8 +12,6 @@ timestep = int(robot.getBasicTimeStep())
 
 camera = robot.getDevice(CAM3_NAME)
 camera.enable(timestep)
-
-# initialize emitter
 emitter = robot.getDevice(CAM3_EMITTER)
 
 print(f"[Camera] Emitter initialized with channel: {emitter.getChannel()}")
