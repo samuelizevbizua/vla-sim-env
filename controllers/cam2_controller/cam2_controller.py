@@ -9,7 +9,7 @@ from config import CAM2_EMITTER, CAM2_NAME
 robot = Robot()
 timestep = int(robot.getBasicTimeStep())
 
-# Depth RGB camera -- grayscale depth
+# RGB camera
 camera = robot.getDevice(CAM2_NAME)
 camera.enable(timestep)
 emitter = robot.getDevice(CAM2_EMITTER)

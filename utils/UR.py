@@ -81,8 +81,6 @@ class URe_Robot:
         self.supervisor = supervisor
         self.timestep = int(supervisor.getBasicTimeStep())
         self.robot_node = self.supervisor.getSelf()
-        
-        # 1. Setup Math Solver
         self.solver = IK_Solver(gripper_length=0.16)
         self._target_joints = None
         self.home_joints = None
@@ -90,8 +88,6 @@ class URe_Robot:
         self._init_arm_hardware()
         self._init_gripper_hardware()
         self._init_matrices()
-        
-        # 3. Warm up sensors
         for _ in range(5):
             self.supervisor.step(self.timestep)
             

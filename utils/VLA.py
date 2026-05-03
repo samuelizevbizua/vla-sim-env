@@ -16,8 +16,10 @@ def ACTION(base64_img_agent, base64_img_wrist, state, instruction):
     start_time = time.time()
     try:
         response = requests.post(f"{VLA_API_URL}/predict", json=payload, timeout=20)
+        
         if response.status_code == 200:
             data = response.json()
+            # Catch internal server errors hidden inside a 200 OK
             if data.get("status") == "error":
                 print(f" -> [Server Error] {data.get('message')}")
                 return None

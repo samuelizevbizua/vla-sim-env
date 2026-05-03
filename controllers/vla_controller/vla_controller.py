@@ -3,11 +3,7 @@ VLA Continuous Baseline Controller
 Uses fine-tuned SmolVLA model via a server endpoint to continuously predict delta movements.
 """
 
-import os
-import sys
-import base64
-import cv2
-
+import os, sys
 os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
@@ -34,11 +30,15 @@ receiver_wrist = supervisor.getDevice(CAM3_RECEIVER)
 receiver_wrist.enable(timestep)
 
 table_node = supervisor.getFromDef(SIM_TABLE_DEF)
-table_pos = table_node.getPosition()
+table_pos  = table_node.getPosition()
 TABLE_HEIGHT = table_node.getField("size").getSFVec3f()[2]
 
-# Move to home
-robot.move_to_world_target([table_pos[0], table_pos[1], TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT], settle_time_ms=500)
+current_x = float(table_pos[0])
+current_y = float(table_pos[1])
+current_z = TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT
+
+print("[System] Moving to start pose...")
+robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
 has_picked = False
@@ -51,8 +51,7 @@ print("[Brain] VLA Continuous Loop starting...")
 
 while supervisor.step(timestep) != -1:
     step_counter += 1
-    if step_counter % INFERENCE_EVERY_N != 0:
-        continue
+    if step_counter % INFERENCE_EVERY_N != 0: continue
 
     # Grab both images
     img_agent = GET_RECEIVER_BASE64_IMAGE(receiver_agent)
