@@ -18,7 +18,7 @@ from config import (
     CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF,
     GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD,
-    TARGET2_DEF
+    TARGET2_DEF, MAX_TASK_TIME
 )
 
 supervisor = Supervisor()
@@ -41,6 +41,10 @@ for _ in range(int(1000 / timestep)):
 
 start_time = supervisor.getTime()
 initial_target_pos = supervisor.getFromDef(TARGET2_DEF).getPosition()
+predicted_pick = None
+predicted_drop = None
+task_complete = False
+task_timed_out = False
 
 img = GET_RECEIVER_BASE64_IMAGE(receiver)
 
@@ -69,28 +73,37 @@ if img is not None:
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)
-
-        end_time = supervisor.getTime()
-        LOG_OOD(
-            supervisor=supervisor, architecture="VLM",
-            start_time=start_time, end_time=end_time,
-            predicted_pick=(pick_x, pick_y), predicted_drop=(drop_x, drop_y),
-            initial_target_pos=initial_target_pos
-        )
+        predicted_pick = (pick_x, pick_y)
+        predicted_drop = (drop_x, drop_y)
+        task_complete = True
         print("\n[System] OOD sequence complete.")
 
     except Exception as e:
         print(f"[Error] Controller failed: {e}")
-        end_time = supervisor.getTime()
-        LOG_OOD(
-            supervisor=supervisor, architecture="VLM",
-            start_time=start_time, end_time=end_time,
-            predicted_pick=(0, 0), predicted_drop=(0, 0),
-            initial_target_pos=initial_target_pos,
-            success_override=False
-        )
 else:
     print("[Error] Failed to capture image.")
+
+end_time = supervisor.getTime()
+if supervisor.getTime() - start_time > MAX_TASK_TIME:
+    task_timed_out = True
+    print("[Error] VLM OOD sequence timed out (Exceeded MAX_TASK_TIME).")
+
+if task_complete and not task_timed_out and predicted_pick and predicted_drop:
+    LOG_OOD(
+        supervisor=supervisor, architecture="VLM",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick, predicted_drop=predicted_drop,
+        initial_target_pos=initial_target_pos
+    )
+else:
+    end_time = supervisor.getTime()
+    LOG_OOD(
+        supervisor=supervisor, architecture="VLM",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=(0, 0), predicted_drop=(0, 0),
+        initial_target_pos=initial_target_pos,
+        success_override=False
+    )
 
 print("\n[System] Entering idle mode.")
 while supervisor.step(timestep) != -1:

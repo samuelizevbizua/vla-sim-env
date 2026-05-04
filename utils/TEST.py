@@ -144,7 +144,7 @@ def AUTOMATE_NUDGE(supervisor, target_def=TARGET_DEF, bin_def=DEST_DEF, table_de
 
 def LOG_NUDGE_METRICS(supervisor, architecture, start_time, end_time,
                       nudge_history, final_pick_error, predicted_drop,
-                      target_def=TARGET_DEF, bin_def=DEST_DEF):
+                      target_def=TARGET_DEF, bin_def=DEST_DEF, success_override=None):
     """
     Logger for the perturbation (nudge) test.
     nudge_history: list of dicts — [{'truth': (x,y), 'pred': (x,y), 'error': float}]
@@ -163,7 +163,7 @@ def LOG_NUDGE_METRICS(supervisor, architecture, start_time, end_time,
         (real_target_pos[0], real_target_pos[1]),
         (real_bin_pos[0], real_bin_pos[1])
     ), 4)
-    success = bool(final_distance_to_bin < BIN_SUCCESS_RADIUS)
+    success = success_override if success_override is not None else bool(final_distance_to_bin < BIN_SUCCESS_RADIUS)
     model_id = VLM_PATH if architecture == "VLM" else VLA_PATH
 
     headers = ["Architecture", "Model_ID", "Task_Time_Sec", "Total_Nudges",

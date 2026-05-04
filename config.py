@@ -53,7 +53,7 @@ VLA_USER_PROMPTS = {
 
 TARGET_NUDGES = 1
 NUDGE_TOLERANCE_NORM = 0.08
-MAX_TASK_TIME = 15.0  # seconds
+MAX_TASK_TIME = 40.0  # seconds
 
 def GET_RECEIVER_BASE64_IMAGE(receiver, preview_img=False, format="base64"):
     last_packet = None

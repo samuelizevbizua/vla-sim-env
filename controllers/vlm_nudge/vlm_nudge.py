@@ -20,7 +20,7 @@ from config import (
     GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT,
     PIXEL_TO_WORLD, NUDGE_TOLERANCE_NORM, TARGET_NUDGES,
-    TARGET_DEF
+    TARGET_DEF, MAX_TASK_TIME
 )
 
 supervisor = Supervisor()
@@ -53,6 +53,9 @@ MAX_RETRIES = 5
 print("\n[Brain] Starting VLM Nudge Test...")
 
 while task_state != "DONE" and supervisor.step(timestep) != -1:
+    if supervisor.getTime() - start_time > MAX_TASK_TIME:
+        print("\n[Error] VLM nudge sequence timed out (Exceeded MAX_TASK_TIME).")
+        break
 
     if task_state == "SENSING":
         img = GET_RECEIVER_BASE64_IMAGE(receiver)
@@ -72,7 +75,13 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
                 print("\n[Fatal] Max retries reached. Aborting.")
                 break
             for _ in range(int(2000 / timestep)):
+                if supervisor.getTime() - start_time > MAX_TASK_TIME:
+                    print("\n[Error] VLM nudge sequence timed out during retry wait.")
+                    task_state = "DONE"
+                    break
                 supervisor.step(timestep)
+            if task_state == "DONE":
+                break
             continue
 
         retry_count = 0
@@ -107,7 +116,13 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
                 print(f" -> [!] Displacement detected ({dist:.3f}). Re-tracking...")
                 prev_coords = None
                 for _ in range(int(2000 / timestep)):
+                    if supervisor.getTime() - start_time > MAX_TASK_TIME:
+                        print("\n[Error] VLM nudge sequence timed out during re-track wait.")
+                        task_state = "DONE"
+                        break
                     supervisor.step(timestep)
+                if task_state == "DONE":
+                    break
                 continue
             else:
                 print(" -> Target stable. Executing grasp...")
@@ -138,7 +153,13 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
             if retry_count >= MAX_RETRIES:
                 break
             for _ in range(int(2000 / timestep)):
+                if supervisor.getTime() - start_time > MAX_TASK_TIME:
+                    print("\n[Error] VLM nudge sequence timed out during bin retry wait.")
+                    task_state = "DONE"
+                    break
                 supervisor.step(timestep)
+            if task_state == "DONE":
+                break
             continue
 
         retry_count = 0
@@ -154,8 +175,9 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
         task_state = "DONE"
 
 end_time = supervisor.getTime()
+timed_out = (end_time - start_time) > MAX_TASK_TIME
 
-if predicted_pick is not None:
+if predicted_pick is not None and not timed_out:
     LOG_NUDGE_METRICS(
         supervisor=supervisor, architecture="VLM",
         start_time=start_time, end_time=end_time,
@@ -165,7 +187,15 @@ if predicted_pick is not None:
     )
     print("\n[System] Sequence complete. Data logged.")
 else:
-    print("\n[System] Sequence aborted. No data logged.")
+    LOG_NUDGE_METRICS(
+        supervisor=supervisor, architecture="VLM",
+        start_time=start_time, end_time=end_time,
+        nudge_history=nudge_history,
+        final_pick_error=final_pick_error,
+        predicted_drop=predicted_drop,
+        success_override=False if timed_out else None
+    )
+    print("\n[System] Sequence aborted or timed out. Data logged.")
 
 print("[System] Entering idle mode.")
 while supervisor.step(timestep) != -1:

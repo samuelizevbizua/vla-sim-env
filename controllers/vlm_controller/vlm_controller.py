@@ -18,7 +18,7 @@ from config import (
     CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF,
     GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD,
-    TARGET_DEF
+    TARGET_DEF, MAX_TASK_TIME
 )
 
 supervisor = Supervisor()
@@ -41,6 +41,9 @@ for _ in range(int(1000 / timestep)):
 
 start_time = supervisor.getTime()
 initial_cube_pos = supervisor.getFromDef(TARGET_DEF).getPosition()
+predicted_pick = None
+predicted_drop = None
+task_complete = False
 
 img = GET_RECEIVER_BASE64_IMAGE(receiver)
 
@@ -70,27 +73,38 @@ if img is not None:
         robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)
 
-        end_time = supervisor.getTime()
-        LOG_BASELINE(
-            supervisor=supervisor, architecture="VLM",
-            start_time=start_time, end_time=end_time,
-            predicted_pick=(pick_x, pick_y), predicted_drop=(drop_x, drop_y),
-            initial_target_pos=initial_cube_pos
-        )
+        predicted_pick = (pick_x, pick_y)
+        predicted_drop = (drop_x, drop_y)
+        task_complete = True
         print("\n[System] Sequence complete.")
 
     except Exception as e:
         print(f"[Error] Controller failed: {e}")
-        end_time = supervisor.getTime()
-        LOG_BASELINE(
-            supervisor=supervisor, architecture="VLM",
-            start_time=start_time, end_time=end_time,
-            predicted_pick=(0, 0), predicted_drop=(0, 0),
-            initial_target_pos=initial_cube_pos,
-            success_override=False
-        )
 else:
     print("[Error] Failed to capture image.")
+
+end_time = supervisor.getTime()
+timed_out = (end_time - start_time) > MAX_TASK_TIME
+
+if timed_out:
+    print("[Error] VLM sequence timed out (Exceeded MAX_TASK_TIME).")
+
+if task_complete and not timed_out and predicted_pick and predicted_drop:
+    LOG_BASELINE(
+        supervisor=supervisor, architecture="VLM",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick, predicted_drop=predicted_drop,
+        initial_target_pos=initial_cube_pos
+    )
+else:
+    LOG_BASELINE(
+        supervisor=supervisor, architecture="VLM",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick or (0, 0),
+        predicted_drop=predicted_drop or (0, 0),
+        initial_target_pos=initial_cube_pos,
+        success_override=False
+    )
 
 print("\n[System] Entering idle mode.")
 while supervisor.step(timestep) != -1:
