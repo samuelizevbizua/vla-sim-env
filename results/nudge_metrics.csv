@@ -1,0 +1,11 @@
+Architecture,Model_ID,Task_Time_Sec,Total_Nudges,Final_Pick_Error_m,Drop_Error_m,Final_Distance_to_Bin_m,Success,Nudge_1_Truth,Nudge_1_Pred,Nudge_1_Error_m,Nudge_2_Truth,Nudge_2_Pred,Nudge_2_Error_m
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,32.112,2,0.0077,0.1252,0.1783,False,"(0.071, 0.5648)","(0.069, 0.573)",0.0084,"(0.1837, 0.4759)","(0.069, 0.554)",0.1388
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,36.256,2,0.0056,0.1315,0.1461,True,"(0.0252, 0.5269)","(0.019, 0.511)",0.0171,"(0.1181, 0.4696)","(0.019, 0.525)",0.1135
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,29.784,1,0.0128,0.1315,0.1381,True,"(0.2616, 0.3978)","(0.263, 0.4)",0.0026
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,27.327,1,0.0066,0.1141,0.1692,False,"(0.1459, 0.463)","(0.141, 0.441)",0.0225
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,32.242,2,0.0091,0.1283,0.1402,True,"(0.0814, 0.5512)","(0.078, 0.561)",0.0128,"(0.1652, 0.4823)","(0.0759, 0.5421)",0.1287
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,29.811,1,0.0072,0.1198,0.1295,True,"(0.2341, 0.4156)","(0.2374, 0.4188)",0.0048
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,36.984,2,0.0103,0.1301,0.1438,True,"(0.0623, 0.5834)","(0.0599, 0.5776)",0.0089,"(0.1945, 0.4521)","(0.0598, 0.542)",0.1512
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,25.103,1,0.0085,0.1142,0.1349,True,"(0.2028, 0.4392)","(0.2043, 0.4288)",0.0123
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,35.482,2,0.0048,0.1327,0.1477,True,"(0.0934, 0.5389)","(0.0913, 0.5426)",0.0035,"(0.1721, 0.4687)","(0.0876, 0.5512)",0.1163
+VLM,Qwen/Qwen2.5-VL-72B-Instruct:ovhcloud,28.558,1,0.0121,0.1267,0.1278,True,"(0.2704, 0.3821)","(0.2689, 0.3902)",0.0089

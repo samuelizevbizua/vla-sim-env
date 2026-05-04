@@ -1,6 +1,7 @@
 """
 VLA Continuous Baseline Controller
 Uses fine-tuned SmolVLA model via a server endpoint to continuously predict delta movements.
+Integrated with standard testing metrics: Task Time, Pick Error, and Success Rate.
 """
 
 import os, sys
@@ -10,11 +11,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Supervisor
 from utils.UR import URe_Robot
 from utils.VLA import ACTION
+from utils.TEST import LOG_BASELINE  # Brought in the new testing framework
 
 from config import (
     CAM2_RECEIVER, CAM3_RECEIVER, SIM_TABLE_DEF, 
     GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N,
-    GRIPPER_LIFT_HEIGHT
+    GRIPPER_LIFT_HEIGHT, MAX_TASK_TIME, TARGET_DEF
 )
 import numpy as np
 
@@ -41,6 +43,18 @@ print("[System] Moving to start pose...")
 robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
+# --- TEST INITIALIZATION ---
+print("\n[Brain] Initializing VLA Baseline (Continuous-Loop)")
+for _ in range(int(1000 / timestep)):
+    supervisor.step(timestep)
+
+# Track the initial ground truth to measure Pick Error later
+initial_cube_pos = supervisor.getFromDef(TARGET_DEF).getPosition()
+start_time = supervisor.getTime()
+
+predicted_pick = None
+predicted_drop = None
+task_complete = False
 has_picked = False
 step_counter = 0
 
@@ -50,6 +64,12 @@ current_prompt = "move the red object into the green container"
 print("[Brain] VLA Continuous Loop starting...")
 
 while supervisor.step(timestep) != -1:
+    
+    # 1. Enforce Timeout (Prevents infinite drift)
+    if supervisor.getTime() - start_time > MAX_TASK_TIME:
+        print("\n[Error] VLA sequence timed out (Exceeded MAX_TASK_TIME).")
+        break
+
     step_counter += 1
     if step_counter % INFERENCE_EVERY_N != 0: continue
 
@@ -59,18 +79,18 @@ while supervisor.step(timestep) != -1:
     
     if not img_agent or not img_wrist: continue
 
-    # 1. Grab the fresh, real-time 6D pose from the physical robot
+    # Grab the fresh, real-time 6D pose from the physical robot
     current_pose = robot.get_end_effector_pose()
     
-    # 2. Match the gripper command format used during training
+    # Match the gripper command format used during training
     gripper_cmd = 1.0 if has_picked else 0.0
     
-    # 3. Build the exact 8-dim state array [x, y, z, roll, pitch, yaw, grip, grip]
+    # Build the exact 8-dim state array [x, y, z, roll, pitch, yaw, grip, grip]
     current_state = current_pose + [gripper_cmd, gripper_cmd]
 
     print(f"Executing prompt: {current_prompt}")
 
-    # 4. Pass the real-time state array to the ACTION function
+    # Pass the real-time state array to the ACTION function
     action = ACTION(img_agent, img_wrist, current_state, current_prompt)    
     if action is None:
         print("[System] Waiting for Brain...")
@@ -79,7 +99,6 @@ while supervisor.step(timestep) != -1:
         print(f"[Brain] Action received: {action}")
 
     # Action output from model is 7 dims: [dx, dy, dz, droll, dpitch, dyaw, delta_grip]
-    # NOTE: Since action might return a batch, we take action[0] if it's nested
     if isinstance(action[0], list):
         current_action = action[0]
     else:
@@ -87,13 +106,12 @@ while supervisor.step(timestep) != -1:
         
     dx, dy, dz, droll, dpitch, dyaw, delta_grip = current_action[:7]
     
-    # 🚨 TRANSLATE NEURAL SIGNAL [-1, 1] TO PHYSICAL METERS
+    # TRANSLATE NEURAL SIGNAL [-1, 1] TO PHYSICAL METERS
     ACTION_SCALE = 0.02
     dx = dx * ACTION_SCALE
     dy = dy * ACTION_SCALE
     dz = dz * ACTION_SCALE
     
-    # Now the print statement will show the safe, physical meters!
     print(f"[VLA] Deltas -> dx={dx:+.4f} | dy={dy:+.4f} | dz={dz:+.4f} | grip={delta_grip:+.2f}")
 
     # --- APPLY DELTA MOVEMENT ---
@@ -104,21 +122,49 @@ while supervisor.step(timestep) != -1:
     target_y = current_pose[1] + dy
     target_z = current_pose[2] + dz
     
-    # Command the physical body to move to the new position
     robot.move_to_world_target_async([target_x, target_y, target_z])
     
-    # --- REFEREE STATE MACHINE FOR GRIPPER ---
-    # In training, delta_grip was gripper_cmd - previous_gripper_cmd
-    # We need to maintain a running state or threshold it.
-    # Assuming the model outputs roughly > 0.5 to close, < 0.5 to open (if it learned absolute values)
-    # OR if it learned true deltas, positive means closing, negative means opening.
-    
+    # --- REFEREE STATE MACHINE & METRIC TRACKING ---
     if delta_grip > 0.3:
         robot.operate_gripper(close=True)
         if not has_picked:
             print(" -> [State] VLA initiated Pick!")
             has_picked = True
+            # RECORD METRIC: The exact coordinate the VLA committed to the grasp
+            predicted_pick = (target_x, target_y) 
+            
     elif delta_grip < -0.3:
         robot.operate_gripper(close=False)
         if has_picked:
             print(" -> [State] VLA initiated Drop!")
+            # RECORD METRIC: The exact coordinate the VLA released the object
+            predicted_drop = (target_x, target_y) 
+            task_complete = True
+            break  # The sequence is over! Exit the loop to log metrics.
+
+# --- POST-TASK LOGGING ---
+end_time = supervisor.getTime()
+
+if task_complete and predicted_pick and predicted_drop:
+    LOG_BASELINE(
+        supervisor=supervisor, architecture="VLA",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick, predicted_drop=predicted_drop,
+        initial_target_pos=initial_cube_pos
+    )
+    print("\n[System] Sequence complete. Data logged.")
+else:
+    # If it timed out or crashed, log it as an explicit failure
+    LOG_BASELINE(
+        supervisor=supervisor, architecture="VLA",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick or (0.0, 0.0), 
+        predicted_drop=predicted_drop or (0.0, 0.0),
+        initial_target_pos=initial_cube_pos, 
+        success_override=False
+    )
+    print("\n[System] Sequence failed or timed out. Logged as failure.")
+
+print("\n[System] Entering idle mode.")
+while supervisor.step(timestep) != -1:
+    pass

@@ -1,7 +1,8 @@
 """
 VLM OOD Controller (Out-Of-Distribution Test)
-Tests the model's zero-shot semantic reasoning by asking it to interact 
-with a novel object using a single-pass, static environment sequence.
+Tests zero-shot semantic reasoning on a novel object (rubber duck)
+not seen during any training or configuration phase.
+Uses a single-pass plan-then-act sequence identical to the baseline.
 """
 
 import os, sys
@@ -14,8 +15,10 @@ from utils.VLM import ASK
 from utils.TEST import LOG_OOD
 
 from config import (
-    CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF, GET_RECEIVER_BASE64_IMAGE,
-    VLM_USER_PROMPTS, GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD
+    CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF,
+    GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
+    GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD,
+    TARGET2_DEF
 )
 
 supervisor = Supervisor()
@@ -26,17 +29,18 @@ receiver = supervisor.getDevice(CAM1_RECEIVER)
 receiver.enable(timestep)
 
 cam_node = supervisor.getFromDef(CAM1_DEF)
-CAM_WIDTH, CAM_HEIGHT = cam_node.getField("width").getSFInt32(), cam_node.getField("height").getSFInt32()
-CAM_X, CAM_Y, CAM_Z = cam_node.getParentNode().getPosition()
+CAM_WIDTH = cam_node.getField("width").getSFInt32()
+CAM_HEIGHT = cam_node.getField("height").getSFInt32()
 CAM_FOV = cam_node.getField("fieldOfView").getSFFloat()
+CAM_X, CAM_Y, CAM_Z = cam_node.getParentNode().getPosition()
 TABLE_HEIGHT = supervisor.getFromDef(SIM_TABLE_DEF).getField("size").getSFVec3f()[2]
 
-print("\n[Brain] Initializing OOD Single-Pass VLM Test")
-
-for _ in range(int(1000 / timestep)): supervisor.step(timestep)
+print("\n[Brain] Initializing VLM OOD Test")
+for _ in range(int(1000 / timestep)):
+    supervisor.step(timestep)
 
 start_time = supervisor.getTime()
-initial_target_pos = supervisor.getFromDef("OBJ2").getPosition()
+initial_target_pos = supervisor.getFromDef(TARGET2_DEF).getPosition()
 
 img = GET_RECEIVER_BASE64_IMAGE(receiver)
 
@@ -45,44 +49,49 @@ if img is not None:
         {"type": "text", "text": VLM_USER_PROMPTS["ood_test"]},
         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
     ]
-
     try:
-        print("\n[Vision] Snapping OOD picture and asking VLM...")
+        print("\n[Vision] Querying VLM for OOD target and bin coordinates...")
         args = ASK(content)
 
-        # Safety Check for the NEW JSON keys
         if args.get("found") is False or "target_x_norm" not in args:
-            print(" -> [Error] VLM failed to identify the OOD target. Aborting.")
-            raise ValueError("Incomplete JSON.")
+            raise ValueError(f"VLM failed to identify OOD target. Response: {args}")
 
-        # Using target_x_norm instead of cube_x_norm
-        pick_x, pick_y = PIXEL_TO_WORLD(args['target_x_norm'], args['target_y_norm'], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
-        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'], TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
+        pick_x, pick_y = PIXEL_TO_WORLD(args['target_x_norm'], args['target_y_norm'],
+                                        TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
+        drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'],
+                                        TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
 
-        print(f"\n[Muscle] Executing OOD Pick-and-Place sequence...")
-        
+        print(f"\n[Muscle] Executing OOD pick-and-place...")
         robot.operate_gripper(close=False)
-        
-        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
-        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_TARGET_HOVER_HEIGHT]) 
-        robot.operate_gripper(close=True)   
-        
-        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT]) 
+        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
+        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_TARGET_HOVER_HEIGHT])
+        robot.operate_gripper(close=True)
+        robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)
 
         end_time = supervisor.getTime()
-        
         LOG_OOD(
-            supervisor=supervisor, architecture="VLM", start_time=start_time, end_time=end_time,
+            supervisor=supervisor, architecture="VLM",
+            start_time=start_time, end_time=end_time,
             predicted_pick=(pick_x, pick_y), predicted_drop=(drop_x, drop_y),
-            initial_target_pos=initial_target_pos, target_def="OBJ2", bin_def="BIN"
+            initial_target_pos=initial_target_pos
         )
-
-        print("\n[System] OOD Sequence Complete!")
+        print("\n[System] OOD sequence complete.")
 
     except Exception as e:
-        print(f"[Error] Agent failed: {str(e)}")
+        print(f"[Error] Controller failed: {e}")
+        end_time = supervisor.getTime()
+        LOG_OOD(
+            supervisor=supervisor, architecture="VLM",
+            start_time=start_time, end_time=end_time,
+            predicted_pick=(0, 0), predicted_drop=(0, 0),
+            initial_target_pos=initial_target_pos,
+            success_override=False
+        )
+else:
+    print("[Error] Failed to capture image.")
 
-print("\n[System] Entering Terminal Idle State.")
-while supervisor.step(timestep) != -1: pass
+print("\n[System] Entering idle mode.")
+while supervisor.step(timestep) != -1:
+    pass

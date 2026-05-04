@@ -12,6 +12,7 @@ MODEL_CONFIG = {
 VLM_SYSTEM_PROMPT = (
     "You are an expert robotic vision agent. You will receive an overhead image of a workspace. "
     "Calculate the EXACT DEAD-CENTER of the requested object(s). "
+    "CRITICAL RULE FOR CONTAINERS: If asked to find a bin, crate, or container, you MUST return the coordinates for the empty hollow space in the very middle of the container, NEVER the outer plastic edges or rims. "
     "Return the object coordinates as normalized floats (0.0 to 1.0). "
     "You MUST output ONLY a valid JSON object with NO markdown formatting and NO conversational text."
 )

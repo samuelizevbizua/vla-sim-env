@@ -7,13 +7,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from controller import Supervisor
 from utils.UR import URe_Robot
-from config import GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT
+from config import GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, TARGET_DEF, DEST_DEF
 
 supervisor = Supervisor()
 robot = URe_Robot(supervisor)
 
-target = supervisor.getFromDef("OBJ1") #OBJ1 or OBJ2
-dest = supervisor.getFromDef("BIN") 
+target = supervisor.getFromDef(TARGET_DEF)
+dest = supervisor.getFromDef(DEST_DEF) 
 
 timestep = int(supervisor.getBasicTimeStep())
 task_state = "PICKING" 

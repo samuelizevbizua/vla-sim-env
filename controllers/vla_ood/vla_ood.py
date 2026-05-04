@@ -1,7 +1,8 @@
 """
 VLA OOD Controller (Out-Of-Distribution Test)
 Tests the end-to-end model's zero-shot semantic reasoning by asking it 
-to interact with a novel, visually complex object (Jam Jar).
+to interact with a novel, visually complex object (Rubber Duck).
+Integrated with standard testing metrics: Task Time, Pick Error, and Success Rate.
 """
 
 import os, sys
@@ -14,16 +15,21 @@ from utils.VLA import ACTION
 from utils.TEST import LOG_OOD
 
 from config import (
-    CAM2_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
-    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N
+    CAM2_RECEIVER, CAM3_RECEIVER, SIM_TABLE_DEF, VLA_USER_PROMPTS,
+    GET_RECEIVER_BASE64_IMAGE, INFERENCE_EVERY_N,
+    GRIPPER_LIFT_HEIGHT, MAX_TASK_TIME, TARGET2_DEF
 )
+import numpy as np
 
 supervisor = Supervisor()
 timestep = int(supervisor.getBasicTimeStep())
 robot = URe_Robot(supervisor)
 
-receiver = supervisor.getDevice(CAM2_RECEIVER)
-receiver.enable(timestep)
+receiver_agent = supervisor.getDevice(CAM2_RECEIVER)
+receiver_agent.enable(timestep)
+
+receiver_wrist = supervisor.getDevice(CAM3_RECEIVER)
+receiver_wrist.enable(timestep)
 
 table_node = supervisor.getFromDef(SIM_TABLE_DEF)
 table_pos  = table_node.getPosition()
@@ -31,97 +37,100 @@ TABLE_HEIGHT = table_node.getField("size").getSFVec3f()[2]
 
 current_x = float(table_pos[0])
 current_y = float(table_pos[1])
-current_z = TABLE_HEIGHT + 0.2
+current_z = TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT
 
 print("[System] Moving to start pose...")
 robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
 robot.operate_gripper(close=False)
 
+print("\n[Brain] Initializing VLA OOD Test (Rubber Duck)")
 for _ in range(int(1000 / timestep)): supervisor.step(timestep)
 
-print("\n[Brain] VLA OOD Loop starting...")
-
-# --- NEW: Referee Tracking Variables ---
+initial_target_pos = supervisor.getFromDef(TARGET2_DEF).getPosition()
 start_time = supervisor.getTime()
-initial_target_pos = supervisor.getFromDef("OBJ2").getPosition()
+
 predicted_pick = None
 predicted_drop = None
+task_complete = False
 has_picked = False
-MAX_TRIAL_TIME_SEC = 120.0
-# ---------------------------------------
-
 step_counter = 0
 
-while supervisor.step(timestep) != -1:
-    step_counter += 1
-    current_time = supervisor.getTime()
+current_prompt = VLA_USER_PROMPTS.get("ood", "move the rubber duck into the green container")
 
-    if (current_time - start_time) > MAX_TRIAL_TIME_SEC:
-        print("\n[Referee] Trial timed out!")
+print("[Brain] VLA Continuous Loop starting...")
+
+while supervisor.step(timestep) != -1:
+    
+    if supervisor.getTime() - start_time > MAX_TASK_TIME:
+        print("\n[Error] VLA sequence timed out (Exceeded MAX_TASK_TIME).")
         break
 
+    step_counter += 1
     if step_counter % INFERENCE_EVERY_N != 0: continue
 
-    img = GET_RECEIVER_BASE64_IMAGE(receiver)
-    if not img: continue
+    img_agent = GET_RECEIVER_BASE64_IMAGE(receiver_agent)
+    img_wrist = GET_RECEIVER_BASE64_IMAGE(receiver_wrist)
+    if not img_agent or not img_wrist: continue
 
-    action = ACTION(img, VLA_USER_PROMPTS["ood"])
-    if action is None: continue 
+    current_pose = robot.get_end_effector_pose()
+    gripper_cmd = 1.0 if has_picked else 0.0
+    current_state = current_pose + [gripper_cmd, gripper_cmd]
 
-    dx, dy, dz, gripper_state = action[0], action[1], action[2], action[-1]
-    print(f"[VLA] Raw Target -> X={dx:+.4f} | Y={dy:+.4f} | Z={dz:+.4f} | grip={gripper_state:.2f}")
+    action = ACTION(img_agent, img_wrist, current_state, current_prompt)    
+    if action is None: continue
 
-    # ---------------------------------------------------------
-    # CALIBRATION OFFSETS (Sim-to-AI Translation)
-    # ---------------------------------------------------------
-    # AI_ORIGIN is where the AI "thinks" its 0,0,0 coordinate is in Webots.
-    # You will likely need to tweak these numbers slightly!
-    AI_ORIGIN_X = float(table_pos[0])
-    AI_ORIGIN_Y = float(table_pos[1])
+    current_action = action[0] if isinstance(action[0], list) else action
+    dx, dy, dz, droll, dpitch, dyaw, delta_grip = current_action[:7]
     
-    # If dz is around -0.45 when it should be touching the table,
-    # then the AI's origin is about 45cm ABOVE the table.
-    AI_ORIGIN_Z = TABLE_HEIGHT + 0.45 
+    # TRANSLATE NEURAL SIGNAL TO PHYSICAL METERS
+    ACTION_SCALE = 0.02
+    dx *= ACTION_SCALE
+    dy *= ACTION_SCALE
+    dz *= ACTION_SCALE
 
-    # Translate local AI target to global Webots target
-    current_x = AI_ORIGIN_X + dx
-    current_y = AI_ORIGIN_Y + dy
-    current_z = AI_ORIGIN_Z + dz
+    target_x = current_pose[0] + dx
+    target_y = current_pose[1] + dy
+    target_z = current_pose[2] + dz
 
-    robot.move_to_world_target([current_x, current_y, current_z], settle_time_ms=0)
-
-    # --- NEW: State Machine to Track Pick/Drop for the Logger ---
-    if gripper_state > 0.5:
+    robot.move_to_world_target_async([target_x, target_y, target_z])
+    
+    # --- PICK & DROP LOGIC ---
+    if delta_grip > 0.3:
         robot.operate_gripper(close=True)
         if not has_picked:
             print(" -> [State] VLA initiated Pick!")
-            predicted_pick = (current_x, current_y)
             has_picked = True
-    else:
+            predicted_pick = (target_x, target_y) 
+            
+    elif delta_grip < -0.3:
         robot.operate_gripper(close=False)
         if has_picked:
-            print(" -> [State] VLA initiated Drop! Ending sequence.")
-            predicted_drop = (current_x, current_y)
-            break
-    # ------------------------------------------------------------
+            print(" -> [State] VLA initiated Drop!")
+            predicted_drop = (target_x, target_y) 
+            task_complete = True
+            break 
 
+# --- POST-TASK LOGGING ---
 end_time = supervisor.getTime()
 
-# Fallbacks in case it times out before tracking a coordinate
-if predicted_pick is None: predicted_pick = (current_x, current_y)
-if predicted_drop is None: predicted_drop = (current_x, current_y)
+if task_complete and predicted_pick and predicted_drop:
+    LOG_OOD(
+        supervisor=supervisor, architecture="VLA",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick, predicted_drop=predicted_drop,
+        initial_target_pos=initial_target_pos
+    )
+    print("\n[System] Sequence complete. Data logged.")
+else:
+    LOG_OOD(
+        supervisor=supervisor, architecture="VLA",
+        start_time=start_time, end_time=end_time,
+        predicted_pick=predicted_pick or (0.0, 0.0), 
+        predicted_drop=predicted_drop or (0.0, 0.0),
+        initial_target_pos=initial_target_pos, 
+        success_override=False
+    )
+    print("\n[System] Sequence failed or timed out. Logged as failure.")
 
-LOG_OOD(
-    supervisor=supervisor,
-    architecture="VLA",
-    start_time=start_time,
-    end_time=end_time,
-    predicted_pick=predicted_pick,
-    predicted_drop=predicted_drop,
-    initial_target_pos=initial_target_pos,
-    target_def="OBJ2",
-    bin_def="BIN"
-)
-
-print("\n[System] Entering Terminal Idle State.")
+print("\n[System] Entering idle mode.")
 while supervisor.step(timestep) != -1: pass

@@ -11,7 +11,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "../protos/Robotiq2f85Gripper.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Wrench.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Bolt.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/tools/protos/Screwdriver.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/toys/protos/RubberDuck.proto"
 
 WorldInfo {
   info [
@@ -24,7 +24,7 @@ WorldInfo {
     ContactProperties {
       material1 "ROBOTIQ gripper pad"
       coulombFriction [
-        30
+        35
       ]
       bounce 0
     }
@@ -65,7 +65,6 @@ DEF SIM_TABLE Table {
 Table {
   name "robo_table"
   size 0.2 0.2 0.7
-  feetSize 0.05 0.05
   trayAppearance Marble {
   }
   legAppearance Marble {
@@ -98,6 +97,11 @@ DEF OBJ1 Solid {
   physics Physics {
   }
 }
+DEF OBJ2 RubberDuck {
+  translation 0.171841 0.40751 0.72
+  rotation -3.36871e-17 2.63207e-17 1 0.785399
+  scale 0.6
+}
 Wrench {
   translation 0.242551 0.3368 0.72
   rotation -3.36871e-17 2.63207e-17 1 0.785399
@@ -120,10 +124,6 @@ Bolt {
   translation 0.072551 0.6568 0.72
   rotation 2.01372e-17 1.13924e-17 1 -1.5707953071795862
   name "bolt(3)"
-}
-Screwdriver {
-  translation -0.0297693 0.32474 0.72
-  rotation -6.32075e-17 5.5322e-19 -1 0.523598
 }
 Robot {
   translation 0 0.43 2.4
@@ -163,7 +163,7 @@ Robot {
 }
 UR5e {
   translation 0 0 0.7
-  controller "ik_controller"
+  controller "vlm_nudge"
   supervisor TRUE
   selfCollision FALSE
   toolSlot [
