@@ -18,7 +18,7 @@ from config import (
     CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF,
     GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD,
-    TARGET2_DEF, MAX_TASK_TIME
+    TARGET2_DEF, MAX_TASK_TIME, DEST_BIN_HEIGHT
 )
 
 supervisor = Supervisor()
@@ -63,7 +63,7 @@ if img is not None:
         pick_x, pick_y = PIXEL_TO_WORLD(args['target_x_norm'], args['target_y_norm'],
                                         TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
         drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'],
-                                        TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
+                                        TABLE_HEIGHT + DEST_BIN_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
 
         print(f"\n[Muscle] Executing OOD pick-and-place...")
         robot.operate_gripper(close=False)

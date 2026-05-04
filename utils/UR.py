@@ -200,22 +200,6 @@ class URe_Robot:
             print("      -> [Error] Target out of physical reach.")
             self._target_joints = None
 
-    def is_target_reached(self, tolerance=0.04):
-        if self._target_joints is None:
-            # If there was an IK error, treat the target as 'reached' to avoid waiting.
-            return True
-        current = [s.getValue() for s in self.sensors]
-        error = max(abs(np.array(current) - np.array(self._target_joints)))
-        return error < tolerance
-
-    def set_joint_positions_async(self, joint_angles):
-        if len(joint_angles) == 6:
-            for i in range(6):
-                self.motors[i].setPosition(joint_angles[i])
-            self._target_joints = joint_angles
-        else:
-            print("      -> [Error] Must provide exactly 6 joint angles.")
-
     def get_end_effector_pose(self) -> list[float]:
         current_joints = [s.getValue() for s in self.sensors]
         fk_mat = ur5e.forward_kinematics(*current_joints)

@@ -18,7 +18,7 @@ from config import (
     CAM1_DEF, CAM1_RECEIVER, SIM_TABLE_DEF,
     GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT, PIXEL_TO_WORLD,
-    TARGET_DEF, MAX_TASK_TIME
+    TARGET_DEF, MAX_TASK_TIME, DEST_BIN_HEIGHT
 )
 
 supervisor = Supervisor()
@@ -62,7 +62,7 @@ if img is not None:
         pick_x, pick_y = PIXEL_TO_WORLD(args['cube_x_norm'], args['cube_y_norm'],
                                         TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
         drop_x, drop_y = PIXEL_TO_WORLD(args['bin_x_norm'], args['bin_y_norm'],
-                                        TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
+                                        TABLE_HEIGHT + DEST_BIN_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH, CAM_X, CAM_Y, CAM_Z)
 
         print(f"\n[Muscle] Executing pick-and-place...")
         robot.operate_gripper(close=False)
@@ -70,7 +70,7 @@ if img is not None:
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_TARGET_HOVER_HEIGHT])
         robot.operate_gripper(close=True)
         robot.move_to_world_target([pick_x, pick_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
-        robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + GRIPPER_LIFT_HEIGHT])
+        robot.move_to_world_target([drop_x, drop_y, TABLE_HEIGHT + DEST_BIN_HEIGHT + GRIPPER_LIFT_HEIGHT])
         robot.operate_gripper(close=False)
 
         predicted_pick = (pick_x, pick_y)

@@ -20,7 +20,7 @@ from config import (
     GET_RECEIVER_BASE64_IMAGE, VLM_USER_PROMPTS,
     GRIPPER_TARGET_HOVER_HEIGHT, GRIPPER_LIFT_HEIGHT,
     PIXEL_TO_WORLD, NUDGE_TOLERANCE_NORM, TARGET_NUDGES,
-    TARGET_DEF, MAX_TASK_TIME
+    TARGET_DEF, MAX_TASK_TIME, DEST_BIN_HEIGHT
 )
 
 supervisor = Supervisor()
@@ -165,7 +165,7 @@ while task_state != "DONE" and supervisor.step(timestep) != -1:
         retry_count = 0
         curr_coords = (data['x'], data['y'])
         wx, wy = PIXEL_TO_WORLD(curr_coords[0], curr_coords[1],
-                                TABLE_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH,
+                                TABLE_HEIGHT + DEST_BIN_HEIGHT, CAM_FOV, CAM_HEIGHT, CAM_WIDTH,
                                 CAM_X, CAM_Y, CAM_Z)
 
         print(f" -> Bin located at ({wx:.3f}, {wy:.3f}). Dropping...")

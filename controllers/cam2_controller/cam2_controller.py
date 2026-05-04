@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from controller import Robot
 import cv2
 import numpy as np
-from config import CAM2_EMITTER, CAM2_NAME
+from config import CAM2_EMITTER, CAM2_NAME, CAM_EMITTER_QUALITY
 
 robot = Robot()
 timestep = int(robot.getBasicTimeStep())
@@ -24,8 +24,7 @@ while robot.step(timestep) != -1:
         # Convert bytes to a NumPy array for OpenCV
         img = np.frombuffer(raw_image, np.uint8).reshape((camera.getHeight(), camera.getWidth(), 4))
         
-        # Compress to JPEG (Quality 80 is a good balance for AI)
-        success, encoded_img = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        success, encoded_img = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, CAM_EMITTER_QUALITY])
         
         if success:
             # Send the compressed bytes
